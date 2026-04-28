@@ -1,0 +1,2 @@
+Requisitos para rodar o mysql 
+pip install mysql-connector-python
