@@ -29,20 +29,23 @@ def logout():
     
     return redirect(url_for('login'))
 
-@app.route('/artigos', methods=['GET'])
+@app.route('/painel-controle', methods=['GET'])
 @login_required
 def dash():
-    return render_template('panel/dashboard.html')
+    user_info = getattr(request, 'current_user', None)
+    return render_template('panel/dashboard.html', user=user_info)
 
 @app.route('/artigo', methods=['GET'])
 @login_required
 def article():
-    return render_template('panel/article.html')
+    user_info = getattr(request, 'current_user', None)
+    return render_template('panel/article.html', user=user_info)
 
 @app.route('/favoritos', methods=['GET'])
 @login_required
 def favourites():
-    return render_template('panel/faovurites.html')
+    user_info = getattr(request, 'current_user', None)
+    return render_template('panel/faovurites.html', user=user_info)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # Se usuário já está logado, redirecionar para dashboard
@@ -134,7 +137,8 @@ def login():
 @app.route('/preferencias', methods=['GET'])
 @login_required
 def preferences():
-    return render_template('panel/preferences.html')
+    user_info = getattr(request, 'current_user', None)
+    return render_template('panel/preferences.html', user=user_info)
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -180,9 +184,9 @@ def register():
         
         # Processar registro via formulário tradicional
         else:
-            full_name = request.form.get('first_name', 'last_name').strip()
+            full_name = request.form.get('full_name', '').strip()
             email = request.form.get('email', '').strip()
-            password = request.form.get('password_hash', '')
+            password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
             terms_accepted = 'terms_accepted' in request.form
             
