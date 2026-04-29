@@ -82,8 +82,7 @@
 
     <!-- Tabs -->
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Entrar</button>
-      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Criar Conta</button>
+      <button type="button" class="auth-tab active" id="tabLogin" >Entrar</button>
     </div>
 
     <!-- ========== FORMULÁRIO LOGIN ========== -->
@@ -92,7 +91,7 @@
 
       <div class="form-header">
         <h2 class="form-title">Bem-vindo de volta 👋</h2>
-        <p class="form-subtitle">Ainda não tem conta? <a href="#" onclick="switchTab('register')">Registe-se grátis</a></p>
+        <p class="form-subtitle">Ainda não tem conta? <a href="{{ url_for('register') }}" >Registe-se grátis</a></p>
       </div>
 
       <!-- Alerta -->
@@ -134,7 +133,7 @@
         <label class="form-label">Palavra-passe</label>
         <div class="form-input-wrap">
           <span class="form-input-icon">🔒</span>
-          <input class="form-input" type="password" id="loginPass" name="password_hash" placeholder="••••••••" required />
+          <input class="form-input" type="password" id="loginPass" name="password" placeholder="••••••••" required />
           <button type="button" class="toggle-pass" onclick="togglePass('loginPass', this)">👁</button>
         </div>
       </div>
@@ -148,7 +147,7 @@
         <a href="#" class="forgot-link">Esqueceu a senha?</a>
       </div>
 
-      <button type="button" class="btn-primary" id="loginBtn" >
+      <button type="submit" class="btn-primary" id="loginBtn">
         Entrar na minha conta →
       </button>
 
