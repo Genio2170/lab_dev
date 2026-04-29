@@ -1,2 +1,3 @@
 Requisitos para rodar o mysql 
 pip install mysql-connector-python
+Rodar pelo SQL lite
