@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastra-se — NeuralNews</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+
+  <!-- PAINEL ESQUERDO -->
+  <div class="left-panel">
+
+    <!-- Logo -->
+    <a href="index.html" class="lp-logo">
+      <div class="logo-dot"></div>
+      NEURAL<span>NEWS</span>
+    </a>
+
+    <!-- Cards flutuantes -->
+    <div class="floating-cards">
+      <div class="fc">
+        <div class="fc-tag">🔥 Tendência · Tecnologia</div>
+        <div class="fc-title">O Futuro da IA em Angola e no Continente Africano</div>
+        <div class="fc-meta">TechCrunch · 6 min leitura</div>
+      </div>
+      <div class="fc">
+        <div class="fc-tag">⚡ Urgente · Negócios</div>
+        <div class="fc-title">Mercados Globais Reagem à Nova Política do BCE</div>
+        <div class="fc-meta">Bloomberg · 4 min leitura</div>
+      </div>
+      <div class="fc">
+        <div class="fc-tag">🔬 Ciência</div>
+        <div class="fc-title">Novo Armazenamento Quântico Multiplica Capacidade por 1000x</div>
+        <div class="fc-meta">Nature · 8 min leitura</div>
+      </div>
+      <div class="fc">
+        <div class="fc-tag">🌍 África</div>
+        <div class="fc-title">Angola Aprova Lei de Proteção de Dados Pessoais</div>
+        <div class="fc-meta">Jornal de Angola · 3 min leitura</div>
+      </div>
+      <div class="fc">
+        <div class="fc-tag">🚀 Inovação</div>
+        <div class="fc-title">Startup Angolana Levanta 12M$ em Rodada Série A</div>
+        <div class="fc-meta">TechAfrica · 5 min leitura</div>
+      </div>
+    </div>
+
+    <!-- Texto central -->
+    <div class="lp-center">
+      <h1 class="lp-headline">
+        O mundo não<br>para de<br>
+        <span class="grad">noticiar.</span>
+      </h1>
+      <p class="lp-sub">
+        Fique sempre à frente com notícias curadas por IA, personalizadas para os seus interesses.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="lp-stats">
+      <div class="stat">
+        <div class="stat-num">50K+</div>
+        <div class="stat-label">Leitores ativos</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">200+</div>
+        <div class="stat-label">Fontes globais</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">24/7</div>
+        <div class="stat-label">Atualização</div>
+      </div>
+    </div>
+
+  </div>
+<div class="right-panel">
+
+    <!-- ========== FORMULÁRIO REGISTO ========== -->
+    <div class="form-register" id="formRegister">
+
+        <div class="form-header">
+            <h2 class="form-title">Crie a sua conta ✨</h2>
+            <p class="form-subtitle">Já tem conta? <a href="#" onclick="switchTab('login')">Entre aqui</a></p>
+        </div>
+
+        <div class="alert success" id="registerAlert" style="display:none">
+            ✓ Conta criada com sucesso! A redirecionar...
+        </div>
+
+        <!-- Botões sociais -->
+        <div class="social-btns">
+        </div>
+
+        <div class="divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">ou com email</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <!-- Nome + Apelido -->
+        <div class="form-row-2">
+            <div class="form-group">
+                <label class="form-label">Nome</label>
+                <div class="form-input-wrap">
+                    <span class="form-input-icon">👤</span>
+                    <input class="form-input" type="text" placeholder="Manuel" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Apelido</label>
+                <div class="form-input-wrap">
+                    <span class="form-input-icon">👤</span>
+                    <input class="form-input" type="text" placeholder="Kiala" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="form-input-wrap">
+                <span class="form-input-icon">✉</span>
+                <input class="form-input" type="email" placeholder="o-seu@email.com" />
+            </div>
+        </div>
+
+        <!-- Senha -->
+        <div class="form-group">
+            <label class="form-label">Palavra-passe</label>
+            <div class="form-input-wrap">
+                <span class="form-input-icon">🔒</span>
+                <input class="form-input" type="password" id="regPass" placeholder="Mínimo 8 caracteres"
+                    oninput="checkStrength(this.value)" />
+                <button class="toggle-pass" onclick="togglePass('regPass', this)">👁</button>
+            </div>
+            <div class="password-strength">
+                <div class="ps-bar" id="bar1"></div>
+                <div class="ps-bar" id="bar2"></div>
+                <div class="ps-bar" id="bar3"></div>
+                <div class="ps-bar" id="bar4"></div>
+            </div>
+            <div class="ps-label" id="psLabel"></div>
+        </div>
+
+        <!-- Checkbox termos -->
+        <div class="form-group" style="margin-bottom:1.4rem">
+            <label class="checkbox-wrap">
+                <input type="checkbox" id="termsCheck" />
+                <span class="checkbox-label">Aceito os <a href="#" style="color:var(--accent)">Termos</a> e a <a
+                        href="#" style="color:var(--accent)">Privacidade</a></span>
+            </label>
+        </div>
+
+        <button class="btn-primary" onclick="doRegister()">
+            Criar conta grátis →
+        </button>
+
+    </div>
+</div>

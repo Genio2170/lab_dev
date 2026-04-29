@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuralNews — O Futuro das Notícias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-label">AO VIVO</div>
+    <div style="overflow:hidden; flex:1; display:flex;">
+      <div class="ticker-track">
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div class="logo-text">NEURAL<span>NEWS</span></div>
+    </div>
+    <nav>
+      <button class="btn-nav"> Favoritos</button>
+      <button class="btn-nav">⚙Preferências</button>
+      <div class="user-chip">
+        <div class="user-avatar">U</div>
+        <span class="user-name">Utilizador</span>
+        <button class="btn-logout">Sair</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CATEGORIES -->
+  <div class="categories-bar">
+    <button class="cat-chip active">Geral</button>
+    <button class="cat-chip">Tecnologia</button>
+    <button class="cat-chip">Ciência</button>
+    <button class="cat-chip">Saúde</button>
+    <button class="cat-chip">Negócios</button>
+    <button class="cat-chip">Desporto</button>
+    <button class="cat-chip">Política</button>
+    <button class="cat-chip">Cultura</button>
+    <button class="cat-chip">Ambiente</button>
+  </div>
+
+  <!-- MAIN -->
+  <main class="container">
+
+    <!-- IA BANNER -->
+    <div class="ia-banner">
+      <div class="ia-icon">✦</div>
+      <div class="ia-text">
+        <h2>Sugestão Inteligente para Si</h2>
+        <p>Com base nos seus interesses em Tecnologia — este artigo é tendência agora em Angola.</p>
+      </div>
+      <button class="ia-btn">Ver Artigo →</button>
+    </div>
+
+    <!-- DESTAQUES -->
+    <div class="section-header">
+      <div class="section-title">Destaques do Dia</div>
+      <a class="see-all" href="#">Ver todos →</a>
+    </div>
+
+    <div class="news-grid">
+
+      <!-- Card Destaque Principal -->
+      <article class="news-card">
+        <div class="card-img"
+          style="background-image: url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&q=80');">
+          <div class="card-badge">Em Destaque</div>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">TechCrunch</span>
+          </div>
+          <h3 class="card-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h3>
+          <p class="card-excerpt">Uma análise profunda sobre o crescimento tecnológico no IPIL e além — como a IA está a
+            transformar setores críticos da economia angolana.</p>
+          <div class="card-footer">
+            <span class="date">28 Abr 2026</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon active">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="news-card">
+        <div class="card-img"
+          style="background-image: url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80');">
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Wired</span>
+          </div>
+          <h3 class="card-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</h3>
+          <p class="card-excerpt">O novo modelo da OpenAI superou benchmarks históricos em raciocínio e linguagem
+            natural.</p>
+          <div class="card-footer">
+            <span class="date">27 Abr 2026</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="news-card">
+        <div class="card-img"
+          style="background-image: url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=600&q=80');">
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Nature</span>
+          </div>
+          <h3 class="card-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico de Dados</h3>
+          <p class="card-excerpt">A investigação poderá multiplicar por 1000x a capacidade de memórias quânticas a
+            temperatura ambiente.</p>
+          <div class="card-footer">
+            <span class="date">26 Abr 2026</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 4 -->
+      <article class="news-card">
+        <div class="card-img"
+          style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80');">
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Bloomberg</span>
+          </div>
+          <h3 class="card-title">Mercados Globais Reagem à Nova Política Monetária do BCE</h3>
+          <p class="card-excerpt">Bolsas europeias abriram em alta após anúncio de corte de 0.5% nas taxas de juro
+            diretoras.</p>
+          <div class="card-footer">
+            <span class="date">28 Abr 2026</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- TRENDING -->
+    <div class="trending-strip">
+      <div class="section-header" style="margin-bottom:0">
+        <div class="section-title">Mais Lidas Agora</div>
+        <a class="see-all" href="#">Ver ranking →</a>
+      </div>
+      <div class="trending-list">
+        <div class="trending-item">
+          <div class="trending-num">01</div>
+          <div>
+            <div class="trending-text">Angola aprova lei de proteção de dados pessoais</div>
+            <div class="trending-src">Jornal de Angola · 3h atrás</div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <div class="trending-num">02</div>
+          <div>
+            <div class="trending-text">Startup angolana levanta 12M$ em rodada série A</div>
+            <div class="trending-src">TechAfrica · 5h atrás</div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <div class="trending-num">03</div>
+          <div>
+            <div class="trending-text">Nova vacina contra malária aprovada pela OMS</div>
+            <div class="trending-src">Reuters · 6h atrás</div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <div class="trending-num">04</div>
+          <div>
+            <div class="trending-text">SpaceX lança satélite de comunicações para África</div>
+            <div class="trending-src">Space.com · 8h atrás</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div class="logo-text">NEURAL<span>NEWS</span></div>
+    </div>
+    <span>© 2026 NeuralNews · Dados via NewsAPI · Desenvolvido com IA</span>
+  </footer>
+
+  <script>
+    // Category chip toggle
+    document.querySelectorAll('.cat-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Favorite toggle
+    document.querySelectorAll('.btn-icon').forEach(btn => {
+      if (btn.textContent.trim() === '★') {
+        btn.addEventListener('click', () => btn.classList.toggle('active'));
+      }
+    });
+  </script>
+
+</body>
+
+</html>

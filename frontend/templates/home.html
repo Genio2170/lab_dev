@@ -2,248 +2,537 @@
 <html lang="pt">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NeuralNews — O Futuro das Notícias</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
-    rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuralNews — O Futuro das Notícias</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* ===== LANDING PAGE STYLES ===== */
+        .landing-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 60px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .landing-nav .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .landing-nav .nav-links a {
+            text-decoration: none;
+            color: inherit;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            font-size: 15px;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+
+        .landing-nav .nav-links a:hover { opacity: 1; }
+
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform .2s, background .2s;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); background: #222; }
+
+        .btn-outline {
+            background: transparent;
+            color: inherit;
+            border: 1.5px solid currentColor;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+        }
+
+        .btn-outline:hover { background: #000; color: #fff; border-color: #000; }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(120,80,255,0.15), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -200px;
+            left: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,80,150,0.1), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge .pulse {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(40px, 7vw, 84px);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            max-width: 1000px;
+            margin: 0 0 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-style: italic;
+        }
+
+        .hero p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 19px;
+            line-height: 1.6;
+            max-width: 640px;
+            color: #555;
+            margin: 0 0 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 60px;
+            margin-top: 80px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-stats .stat-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 36px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-stats .stat-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        /* SECTIONS */
+        .section {
+            padding: 100px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-eyebrow {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #7c3aed;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .section h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: clamp(32px, 5vw, 52px);
+            letter-spacing: -0.02em;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 24px;
+            line-height: 1.1;
+        }
+
+        .section .lead {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto 64px;
+            line-height: 1.6;
+        }
+
+        /* FEATURES */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 24px;
+            padding: 36px 28px;
+            transition: transform .3s, box-shadow .3s, border-color .3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-color: #ddd;
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .feature-card h3 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            margin: 0 0 12px;
+        }
+
+        .feature-card p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* HOW IT WORKS */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 32px;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 64px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .step h4 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            margin: 0 0 8px;
+        }
+
+        .step p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* CTA */
+        .cta-section {
+            background: #0a0a0a;
+            color: #fff;
+            border-radius: 32px;
+            padding: 80px 40px;
+            text-align: center;
+            margin: 80px auto;
+            max-width: 1200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(124,58,237,0.3), transparent 60%),
+                                    radial-gradient(circle at 70% 50%, rgba(236,72,153,0.25), transparent 60%);
+        }
+
+        .cta-section > * { position: relative; z-index: 2; }
+
+        .cta-section h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(32px, 5vw, 56px);
+            margin: 0 0 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .cta-section p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            opacity: 0.8;
+            max-width: 560px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        .cta-section .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+
+        .cta-section .btn-primary:hover { background: #eee; }
+
+        /* FOOTER */
+        .landing-footer {
+            padding: 40px 60px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            .landing-nav { padding: 16px 20px; }
+            .landing-nav .nav-links a:not(:last-child) { display: none; }
+            .landing-footer { padding: 24px 20px; }
+        }
+    </style>
 </head>
 
 <body>
 
-  <!-- TICKER -->
-  <div class="ticker-bar">
-    <div class="ticker-label">AO VIVO</div>
-    <div style="overflow:hidden; flex:1; display:flex;">
-      <div class="ticker-track">
-        <span class="ticker-item">IA bate recorde de adoção em África</span>
-        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
-        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
-        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
-        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
-        <span class="ticker-item">IA bate recorde de adoção em África</span>
-        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
-        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
-        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
-        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <div class="logo-dot"></div>
-      <div class="logo-text">NEURAL<span>NEWS</span></div>
-    </div>
-    <nav>
-      <button class="btn-nav">★ Favoritos</button>
-      <button class="btn-nav">⚙ Preferências</button>
-      <div class="user-chip">
-        <div class="user-avatar">U</div>
-        <span class="user-name">Utilizador</span>
-        <button class="btn-logout">Sair</button>
-      </div>
+    <!-- NAV -->
+    <nav class="landing-nav">
+        <div class="logo">
+            <div class="logo-dot"></div>
+            <div class="logo-text">NEURAL<span>NEWS</span></div>
+        </div>
+        <div class="nav-links">
+            <a href="#features">Funcionalidades</a>
+            <a href="#how">Como Funciona</a>
+            <a href="#cta">Começar</a>
+            <button class="btn-primary" onclick="window.location.href='/login'">Entrar</button>
+        </div>
     </nav>
-  </header>
 
-  <!-- CATEGORIES -->
-  <div class="categories-bar">
-    <button class="cat-chip active">Geral</button>
-    <button class="cat-chip">Tecnologia</button>
-    <button class="cat-chip">Ciência</button>
-    <button class="cat-chip">Saúde</button>
-    <button class="cat-chip">Negócios</button>
-    <button class="cat-chip">Desporto</button>
-    <button class="cat-chip">Política</button>
-    <button class="cat-chip">Cultura</button>
-    <button class="cat-chip">Ambiente</button>
-  </div>
-
-  <!-- MAIN -->
-  <main class="container">
-
-    <!-- IA BANNER -->
-    <div class="ia-banner">
-      <div class="ia-icon">✦</div>
-      <div class="ia-text">
-        <h2>Sugestão Inteligente para Si</h2>
-        <p>Com base nos seus interesses em Tecnologia — este artigo é tendência agora em Angola.</p>
-      </div>
-      <button class="ia-btn">Ver Artigo →</button>
-    </div>
-
-    <!-- DESTAQUES -->
-    <div class="section-header">
-      <div class="section-title">Destaques do Dia</div>
-      <a class="see-all" href="#">Ver todos →</a>
-    </div>
-
-    <div class="news-grid">
-
-      <!-- Card Destaque Principal -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&q=80');">
-          <div class="card-badge">Em Destaque</div>
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge">
+            <span class="pulse"></span>
+            Powered by AI · Atualizado ao minuto
         </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">TechCrunch</span>
-          </div>
-          <h3 class="card-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h3>
-          <p class="card-excerpt">Uma análise profunda sobre o crescimento tecnológico no IPIL e além — como a IA está a
-            transformar setores críticos da economia angolana.</p>
-          <div class="card-footer">
-            <span class="date">28 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon active">★</button>
+        <h1>O futuro das notícias é <span class="gradient">inteligente</span>.</h1>
+        <p>NeuralNews reúne, resume e personaliza milhares de artigos por dia com inteligência artificial — para que você leia apenas o que realmente importa.</p>
+        <div class="hero-cta">
+            <button class="btn-primary" onclick="window.location.href='/register'">Começar Gratuitamente →</button>
+            <button class="btn-outline" onclick="window.location.href='/home'">Explorar Notícias</button>
+        </div>
+
+        <div class="hero-stats">
+            <div>
+                <div class="stat-num">10k+</div>
+                <div class="stat-label">Artigos diários</div>
             </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 2 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Wired</span>
-          </div>
-          <h3 class="card-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</h3>
-          <p class="card-excerpt">O novo modelo da OpenAI superou benchmarks históricos em raciocínio e linguagem
-            natural.</p>
-          <div class="card-footer">
-            <span class="date">27 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
+            <div>
+                <div class="stat-num">50+</div>
+                <div class="stat-label">Fontes confiáveis</div>
             </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 3 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Nature</span>
-          </div>
-          <h3 class="card-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico de Dados</h3>
-          <p class="card-excerpt">A investigação poderá multiplicar por 1000x a capacidade de memórias quânticas a
-            temperatura ambiente.</p>
-          <div class="card-footer">
-            <span class="date">26 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
+            <div>
+                <div class="stat-num">98%</div>
+                <div class="stat-label">Precisão da IA</div>
             </div>
-          </div>
         </div>
-      </article>
+    </section>
 
-      <!-- Card 4 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Bloomberg</span>
-          </div>
-          <h3 class="card-title">Mercados Globais Reagem à Nova Política Monetária do BCE</h3>
-          <p class="card-excerpt">Bolsas europeias abriram em alta após anúncio de corte de 0.5% nas taxas de juro
-            diretoras.</p>
-          <div class="card-footer">
-            <span class="date">28 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
+    <!-- FEATURES -->
+    <section class="section" id="features">
+        <div class="section-eyebrow">Funcionalidades</div>
+        <h2>Tudo o que precisa para se manter informado.</h2>
+        <p class="lead">Uma experiência de leitura repensada do zero, com IA no centro de cada decisão.</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">✦</div>
+                <h3>Resumos Inteligentes</h3>
+                <p>A IA condensa artigos longos em resumos claros e objetivos, poupando o seu tempo.</p>
             </div>
-          </div>
+            <div class="feature-card">
+                <div class="feature-icon">◎</div>
+                <h3>Personalização Total</h3>
+                <p>Receba notícias ajustadas aos seus interesses, hábitos de leitura e localização.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Tempo Real</h3>
+                <p>Atualizações instantâneas das melhores fontes globais e locais, 24 horas por dia.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">★</div>
+                <h3>Favoritos & Coleções</h3>
+                <p>Guarde, organize e revisite artigos importantes a qualquer momento, em qualquer dispositivo.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⌘</div>
+                <h3>Multi-Categoria</h3>
+                <p>Tecnologia, ciência, saúde, desporto, política — tudo num único lugar curado.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Privacidade Primeiro</h3>
+                <p>Os seus dados nunca são vendidos. Total controlo sobre o que partilha connosco.</p>
+            </div>
         </div>
-      </article>
+    </section>
 
-    </div>
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how">
+        <div class="section-eyebrow">Como Funciona</div>
+        <h2>Três passos para uma leitura mais inteligente.</h2>
+        <p class="lead">Configure em menos de um minuto e deixe a IA fazer o resto.</p>
 
-    <!-- TRENDING -->
-    <div class="trending-strip">
-      <div class="section-header" style="margin-bottom:0">
-        <div class="section-title">Mais Lidas Agora</div>
-        <a class="see-all" href="#">Ver ranking →</a>
-      </div>
-      <div class="trending-list">
-        <div class="trending-item">
-          <div class="trending-num">01</div>
-          <div>
-            <div class="trending-text">Angola aprova lei de proteção de dados pessoais</div>
-            <div class="trending-src">Jornal de Angola · 3h atrás</div>
-          </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">01</div>
+                <h4>Crie a sua conta</h4>
+                <p>Registo gratuito em segundos. Sem cartão de crédito.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">02</div>
+                <h4>Escolha interesses</h4>
+                <p>Selecione categorias e fontes que mais lhe interessam.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">03</div>
+                <h4>Leia, descubra, evolua</h4>
+                <p>A IA aprende consigo e melhora as recomendações a cada dia.</p>
+            </div>
         </div>
-        <div class="trending-item">
-          <div class="trending-num">02</div>
-          <div>
-            <div class="trending-text">Startup angolana levanta 12M$ em rodada série A</div>
-            <div class="trending-src">TechAfrica · 5h atrás</div>
-          </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="cta">
+        <h2>Pronto para mudar como lê notícias?</h2>
+        <p>Junte-se a milhares de leitores que já confiam na NeuralNews para se manterem informados.</p>
+        <button class="btn-primary" onclick="window.location.href='/register'">Criar Conta Gratuita →</button>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="landing-footer">
+        <div class="logo">
+            <div class="logo-dot"></div>
+            <div class="logo-text">NEURAL<span>NEWS</span></div>
         </div>
-        <div class="trending-item">
-          <div class="trending-num">03</div>
-          <div>
-            <div class="trending-text">Nova vacina contra malária aprovada pela OMS</div>
-            <div class="trending-src">Reuters · 6h atrás</div>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-num">04</div>
-          <div>
-            <div class="trending-text">SpaceX lança satélite de comunicações para África</div>
-            <div class="trending-src">Space.com · 8h atrás</div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <span>© 2026 NeuralNews · Desenvolvido com IA em Angola</span>
+    </footer>
 
-  </main>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="logo">
-      <div class="logo-dot"></div>
-      <div class="logo-text">NEURAL<span>NEWS</span></div>
-    </div>
-    <span>© 2026 NeuralNews · Dados via NewsAPI · Desenvolvido com IA</span>
-  </footer>
-
-  <script>
-    // Category chip toggle
-    document.querySelectorAll('.cat-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-
-    // Favorite toggle
-    document.querySelectorAll('.btn-icon').forEach(btn => {
-      if (btn.textContent.trim() === '★') {
-        btn.addEventListener('click', () => btn.classList.toggle('active'));
-      }
-    });
-  </script>
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('.landing-nav a[href^="#"]').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
 
 </body>
 
