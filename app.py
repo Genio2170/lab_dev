@@ -8,19 +8,23 @@ app = Flask(__name__,template_folder="frontend/templates")
 def home():
     return render_template('home.html')
 @app.route('/artigos', methods=['GET'])
+def dash():
+        return render_template('panel/dashboard.html')
+
+@app.route('/artigos', methods=['GET'])
 def article():
-        return render_template('article.html')
+        return render_template('panel/article.html')
 
 @app.route('/favoritos', methods=['GET'])
 def favourites():
-        return render_template('favourites.html')
+        return render_template('panel/favourites.html')
 @app.route('/login', methods=['GET','POST'])
 def login():
     return render_template('login.html')
 
 @app.route('/preferencias', methods=['GET'])
 def preferences():
-        return render_template('preferences.html')
+        return render_template('panel/preferences.html')
 
 @app.route('/register', methods=['GET','POST'])
 def register():
