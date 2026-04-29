@@ -1,212 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Favoritos — NeuralNews</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg: #f0f2f5;
-      --surface: #ffffff;
-      --ink: #0d0f14;
-      --ink-2: #4a4f5e;
-      --ink-3: #8a909f;
-      --accent: #0057ff;
-      --accent-2: #00c6ff;
-      --border: rgba(0,0,0,0.07);
-      --radius: 14px;
-      --shadow: 0 4px 32px rgba(0,0,0,0.08);
-      --font-display: 'Syne', sans-serif;
-      --font-body: 'DM Sans', sans-serif;
-    }
-
-    * { margin:0; padding:0; box-sizing:border-box; }
-
-    body {
-      background: var(--bg);
-      font-family: var(--font-body);
-      color: var(--ink);
-    }
-
-    /* TICKER */
-    .ticker-bar {
-      background: #0d0f14;
-      color: #fff;
-      display:flex;
-      font-size: 0.75rem;
-      overflow:hidden;
-    }
-
-    .ticker-label {
-      background: var(--accent);
-      padding: 8px 14px;
-      font-weight:700;
-      letter-spacing:1px;
-    }
-
-    .ticker-track {
-      display:flex;
-      white-space:nowrap;
-      animation: scroll 25s linear infinite;
-      padding: 8px 0;
-    }
-
-    .ticker-item {
-      padding: 0 2rem;
-      opacity:0.8;
-    }
-
-    @keyframes scroll {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
-
-    /* HEADER */
-    header {
-      position: sticky;
-      top:0;
-      background: rgba(240,242,245,0.9);
-      backdrop-filter: blur(20px);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding: 14px 5%;
-      border-bottom:1px solid var(--border);
-    }
-
-    .logo {
-      font-family: var(--font-display);
-      font-weight:800;
-      font-size:1.2rem;
-      display:flex;
-      gap:6px;
-      align-items:center;
-      text-decoration:none;
-      color:var(--ink);
-    }
-
-    .dot {
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      background:linear-gradient(135deg,var(--accent),var(--accent-2));
-    }
-
-    nav button {
-      border:none;
-      background:var(--surface);
-      padding:7px 14px;
-      border-radius:100px;
-      margin-left:6px;
-      cursor:pointer;
-      border:1px solid var(--border);
-      font-size:0.8rem;
-    }
-
-    /* CONTAINER */
-    .container {
-      max-width:1100px;
-      margin: 40px auto;
-      padding: 0 5%;
-    }
-
-    h1 {
-      font-family: var(--font-display);
-      font-size:2rem;
-      margin-bottom: 20px;
-    }
-
-    /* GRID */
-    .grid {
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    @media (max-width:900px){
-      .grid { grid-template-columns:1fr; }
-    }
-
-    /* CARD */
-    .card {
-      background: var(--surface);
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      overflow:hidden;
-      box-shadow: var(--shadow);
-      cursor:pointer;
-      transition:0.2s;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-    }
-
-    .img {
-      height:140px;
-      background-size:cover;
-      background-position:center;
-    }
-
-    .content {
-      padding:14px;
-    }
-
-    .tag {
-      font-size:0.65rem;
-      color:var(--accent);
-      font-weight:700;
-      letter-spacing:1px;
-      text-transform:uppercase;
-    }
-
-    .title {
-      font-family:var(--font-display);
-      font-weight:700;
-      font-size:0.95rem;
-      margin-top:6px;
-      line-height:1.4;
-    }
-
-    .meta {
-      font-size:0.75rem;
-      color:var(--ink-3);
-      margin-top:8px;
-    }
-
-    .remove {
-      margin-top:10px;
-      font-size:0.75rem;
-      color:#ff3b57;
-      cursor:pointer;
-    }
-
-    /* EMPTY STATE */
-    .empty {
-      text-align:center;
-      padding:60px 20px;
-      color:var(--ink-3);
-    }
-
-    .empty h2 {
-      font-family:var(--font-display);
-      margin-bottom:10px;
-    }
-
-    footer {
-      margin-top:60px;
-      padding:20px 5%;
-      border-top:1px solid var(--border);
-      display:flex;
-      justify-content:space-between;
-      font-size:0.75rem;
-      color:var(--ink-2);
-    }
-  </style>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 
 <body>
@@ -245,7 +49,8 @@
     <div class="grid">
 
       <div class="card">
-        <div class="img" style="background-image:url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800')"></div>
+        <div class="img"
+          style="background-image:url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800')"></div>
         <div class="content">
           <div class="tag">Tecnologia</div>
           <div class="title">O Futuro da Inteligência Artificial em Angola</div>
@@ -255,7 +60,8 @@
       </div>
 
       <div class="card">
-        <div class="img" style="background-image:url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=800')"></div>
+        <div class="img"
+          style="background-image:url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=800')"></div>
         <div class="content">
           <div class="tag">Ciência</div>
           <div class="title">Avanços em computação quântica surpreendem especialistas</div>
@@ -265,7 +71,8 @@
       </div>
 
       <div class="card">
-        <div class="img" style="background-image:url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800')"></div>
+        <div class="img"
+          style="background-image:url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800')"></div>
         <div class="content">
           <div class="tag">Startups</div>
           <div class="title">Startup angolana levanta 12M$ em investimento</div>
@@ -292,4 +99,5 @@
   </footer>
 
 </body>
+
 </html>
