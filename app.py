@@ -180,9 +180,9 @@ def register():
         
         # Processar registro via formulário tradicional
         else:
-            full_name = request.form.get('full_name', '').strip()
+            full_name = request.form.get('first_name', 'last_name').strip()
             email = request.form.get('email', '').strip()
-            password = request.form.get('password', '')
+            password = request.form.get('password_hash', '')
             confirm_password = request.form.get('confirm_password', '')
             terms_accepted = 'terms_accepted' in request.form
             
