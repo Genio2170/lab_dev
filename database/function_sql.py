@@ -1,50 +1,53 @@
 from bd import Conexao
-from mysql.connector import Error
+import sqlite3
 
 class FunctionSql(Conexao):
-    def __init__(self, host, database, user, password):
-        super().__init__(host, database, user, password)
+    def __init__(self, banco="user_bd.db"):
+        super().__init__(banco)
 
     def conectar(self):
-        """Estabelece a conexão usando a lógica da classe pai."""
         return super().conectar()
 
     def _garantir_conexao(self):
-        """Garante que existe uma conexão ativa antes de executar operações."""
         if self.conexao is None:
             self.conectar()
         if self.conexao is None:
-            raise ConnectionError("Não foi possível estabelecer conexão com o banco de dados.")
+            raise Exception("Erro ao conectar ao banco")
         return self.conexao
 
     def executar_query(self, sql, valores=None):
-        """Executa comandos de INSERT, UPDATE e DELETE."""
         try:
             conexao = self._garantir_conexao()
-            with conexao.cursor() as cursor:
-                cursor.execute(sql, valores or ())
-                conexao.commit()
-                print("✅ Operação realizada com sucesso!")
-        except Error as e:
-            print(f"❌ Erro ao executar comando: {e}")
+            cursor = conexao.cursor()
+
+            cursor.execute(sql, valores or ())
+            conexao.commit()
+
+            print("✅ Operação realizada com sucesso!")
+
+        except Exception as e:
+            print("❌ Erro:", e)
 
     def ler_dados(self, sql, valores=None):
-        """Executa comandos de SELECT."""
         try:
             conexao = self._garantir_conexao()
-            # 📖 Retorna os dados como dicionário para facilitar a leitura
-            with conexao.cursor(dictionary=True) as cursor:
-                cursor.execute(sql, valores or ())
-                return cursor.fetchall()
-        except Error as e:
-            print(f"❌ Erro na leitura: {e}")
+            cursor = conexao.cursor()
+
+            cursor.execute(sql, valores or ())
+            colunas = [desc[0] for desc in cursor.description]
+
+            # transforma em dicionário (igual MySQL dictionary=True)
+            resultados = []
+            for linha in cursor.fetchall():
+                resultados.append(dict(zip(colunas, linha)))
+
+            return resultados
+
+        except Exception as e:
+            print("❌ Erro:", e)
             return []
 
     def fechar_conexao(self):
-        """Encerra a conexão chamando o método da classe pai."""
-        metodo = getattr(super(), "fechar_conexao", None)
-        if callable(metodo):
-            metodo()
-        elif self.conexao is not None:
+        if self.conexao:
             self.conexao.close()
             self.conexao = None
