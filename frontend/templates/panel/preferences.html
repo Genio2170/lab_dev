@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuralNews — Preferências de Notícias</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <style>
+
+        /* ===== BASE / RESET ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #fff;
+            color: #111;
+            overflow-x: hidden;
+        }
+
+        /* ===== NAV ===== */
+        .landing-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 60px;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 10;
+        }
+
+        .landing-nav .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .landing-nav .nav-links a {
+            text-decoration: none;
+            color: inherit;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            font-size: 15px;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+
+        .landing-nav .nav-links a:hover { opacity: 1; }
+
+        /* ===== LOGO ===== */
+        .logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+
+        .logo-dot {
+            width: 10px; height: 10px;
+            background: #7c3aed;
+            border-radius: 50%;
+        }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span { color: #7c3aed; }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform .2s, background .2s;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); background: #222; }
+
+        .btn-outline {
+            background: transparent;
+            color: inherit;
+            border: 1.5px solid currentColor;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+        }
+
+        .btn-outline:hover { background: #000; color: #fff; border-color: #000; }
+
+        /* ===== HERO ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px; right: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(120,80,255,0.15), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -200px; left: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,80,150,0.1), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge .pulse {
+            width: 8px; height: 8px;
+            background: #7c3aed;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(40px, 7vw, 84px);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            max-width: 1000px;
+            margin: 0 0 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-style: italic;
+        }
+
+        .hero p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 19px;
+            line-height: 1.6;
+            max-width: 640px;
+            color: #555;
+            margin: 0 0 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 60px;
+            margin-top: 80px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-stats .stat-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 36px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-stats .stat-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        /* ===== SECTIONS ===== */
+        .section {
+            padding: 100px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-eyebrow {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #7c3aed;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .section h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: clamp(32px, 5vw, 52px);
+            letter-spacing: -0.02em;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 24px;
+            line-height: 1.1;
+        }
+
+        .section .lead {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto 64px;
+            line-height: 1.6;
+        }
+
+        /* ===== CATEGORIES GRID ===== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* Card base */
+        .feature-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 24px;
+            padding: 36px 28px;
+            transition: transform .3s, box-shadow .3s, border-color .3s;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-color: #ddd;
+        }
+
+        /* Estado selecionado */
+        .feature-card.selected {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.12), 0 20px 40px rgba(0,0,0,0.08);
+            transform: translateY(-6px);
+        }
+
+        .feature-card.selected .feature-icon {
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+        }
+
+        /* Checkmark de seleção */
+        .card-check {
+            position: absolute;
+            top: 18px; right: 20px;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .25s;
+            background: #fff;
+        }
+
+        .card-check svg {
+            width: 12px; height: 12px;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .feature-card.selected .card-check {
+            background: #7c3aed;
+            border-color: #7c3aed;
+        }
+
+        .feature-card.selected .card-check svg { opacity: 1; }
+
+        .feature-icon {
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            background: #f3f0ff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            margin-bottom: 24px;
+            transition: background .3s;
+        }
+
+        .feature-card h3 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            margin: 0 0 12px;
+        }
+
+        .feature-card p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Tags de tópicos populares */
+        .topic-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .topic-tag {
+            background: #f5f3ff;
+            color: #7c3aed;
+            border: 1px solid #e5e0ff;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 12px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        /* ===== FREQUÊNCIA (HOW IT WORKS) ===== */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .step {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .3s;
+            user-select: none;
+            position: relative;
+        }
+
+        .step:hover {
+            border-color: #ddd;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+            transform: translateY(-4px);
+        }
+
+        .step.selected {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.12), 0 12px 32px rgba(0,0,0,0.06);
+            transform: translateY(-4px);
+        }
+
+        .step-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 48px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .step h4 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            margin: 0 0 8px;
+        }
+
+        .step p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* ===== FONTES PREFERIDAS ===== */
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .source-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 16px;
+            padding: 20px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: all .25s;
+            user-select: none;
+        }
+
+        .source-card:hover {
+            border-color: #ddd;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            transform: translateY(-2px);
+        }
+
+        .source-card.selected {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+        }
+
+        .source-avatar {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .source-info { flex: 1; }
+
+        .source-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .source-desc {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .source-check {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: all .25s;
+        }
+
+        .source-check svg { width: 10px; height: 10px; opacity: 0; transition: opacity .2s; }
+
+        .source-card.selected .source-check {
+            background: #7c3aed;
+            border-color: #7c3aed;
+        }
+
+        .source-card.selected .source-check svg { opacity: 1; }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            background: #0a0a0a;
+            color: #fff;
+            border-radius: 32px;
+            padding: 80px 40px;
+            text-align: center;
+            margin: 80px auto;
+            max-width: 1200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 30% 50%, rgba(124,58,237,0.3), transparent 60%),
+                radial-gradient(circle at 70% 50%, rgba(236,72,153,0.25), transparent 60%);
+        }
+
+        .cta-section > * { position: relative; z-index: 2; }
+
+        .cta-section h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(32px, 5vw, 56px);
+            margin: 0 0 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .cta-section p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            opacity: 0.8;
+            max-width: 560px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        .cta-section .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+
+        .cta-section .btn-primary:hover { background: #eee; }
+
+        /* Contador de seleções */
+        .selection-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #0a0a0a;
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+            z-index: 100;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+            white-space: nowrap;
+        }
+
+        .selection-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .sel-count {
+            background: #7c3aed;
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .sel-save {
+            background: #fff;
+            color: #000;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 20px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+        .sel-save:hover { background: #e5e5e5; }
+
+        /* ===== FOOTER ===== */
+        .landing-footer {
+            padding: 40px 60px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #777;
+        }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-wrap {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: #eee;
+            z-index: 200;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #ec4899);
+            transition: width .4s ease;
+            width: 0%;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .landing-nav { padding: 16px 20px; }
+            .landing-nav .nav-links a:not(:last-child) { display: none; }
+            .landing-footer { padding: 24px 20px; }
+            .hero-stats { gap: 32px; }
+            .selection-bar { width: calc(100% - 48px); justify-content: space-between; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barra de progresso de scroll -->
+    <div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- NAV -->
+    <nav class="landing-nav">
+        <div class="logo" onclick="window.location.href='/'">
+            <div class="logo-dot"></div>
+            <div class="logo-text">NEURAL<span>NEWS</span></div>
+        </div>
+        <div class="nav-links">
+            <a href="#categorias">Categorias</a>
+            <a href="#frequencia">Frequência</a>
+            <a href="#fontes">Fontes</a>
+            <button class="btn-primary" onclick="guardarPreferencias()">Guardar →</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge">
+            <span class="pulse"></span>
+            Personalização inteligente · Alimentado por IA
+        </div>
+        <h1>O seu feed, à sua <span class="gradient">medida</span>.</h1>
+        <p>Escolha os temas que mais importam para si e deixe a IA construir uma experiência de leitura única — atualizada em tempo real, todos os dias.</p>
+        <div class="hero-cta">
+            <button class="btn-primary" onclick="document.getElementById('categorias').scrollIntoView({behavior:'smooth'})">Começar a personalizar →</button>
+            <button class="btn-outline" onclick="window.location.href='/dashboard'">Saltar por agora</button>
+        </div>
+
+        <div class="hero-stats">
+            <div>
+                <div class="stat-num" id="statCats">0</div>
+                <div class="stat-label">Categorias disponíveis</div>
+            </div>
+            <div>
+                <div class="stat-num" id="statSources">0</div>
+                <div class="stat-label">Fontes confiáveis</div>
+            </div>
+            <div>
+                <div class="stat-num" id="statSelected">0</div>
+                <div class="stat-label">Seleções feitas</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="section" id="categorias">
+        <div class="section-eyebrow">Passo 1 · Categorias</div>
+        <h2>O que quer ler todos os dias?</h2>
+        <p class="lead">Selecione uma ou mais categorias. Quanto mais escolher, mais rico será o seu feed personalizado.</p>
+
+        <div class="features-grid" id="categoriasGrid">
+
+            <div class="feature-card" data-cat="tech" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">⚡</div>
+                <h3>Tecnologia</h3>
+                <p>IA, startups, gadgets, cibersegurança e as tendências digitais que moldam o amanhã.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Inteligência Artificial</span>
+                    <span class="topic-tag">Startups</span>
+                    <span class="topic-tag">Gadgets</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="world" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">🌍</div>
+                <h3>Mundo</h3>
+                <p>Geopolítica, conflitos, diplomacia e os grandes acontecimentos que definem a era global.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Geopolítica</span>
+                    <span class="topic-tag">Diplomacia</span>
+                    <span class="topic-tag">África</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="business" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">📈</div>
+                <h3>Negócios</h3>
+                <p>Mercados financeiros, empreendedorismo, fusões e as empresas que lideram a economia.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Mercados</span>
+                    <span class="topic-tag">Petróleo</span>
+                    <span class="topic-tag">Criptomoedas</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="science" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">🔬</div>
+                <h3>Ciência</h3>
+                <p>Descobertas científicas, saúde, espaço, medicina e os avanços que mudam vidas.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Saúde</span>
+                    <span class="topic-tag">Espaço</span>
+                    <span class="topic-tag">Medicina</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="sports" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">⚽</div>
+                <h3>Desporto</h3>
+                <p>Futebol, basquete, atletismo, resultados ao vivo e as histórias por detrás dos atletas.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Futebol</span>
+                    <span class="topic-tag">NBA</span>
+                    <span class="topic-tag">Atletismo</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="culture" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">🎭</div>
+                <h3>Cultura</h3>
+                <p>Cinema, música, literatura, arte e os movimentos culturais que inspiram gerações.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Cinema</span>
+                    <span class="topic-tag">Música</span>
+                    <span class="topic-tag">Arte</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="politics" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">🏛️</div>
+                <h3>Política</h3>
+                <p>Governação, eleições, debates parlamentares e análises sobre o poder em Angola e no mundo.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Angola</span>
+                    <span class="topic-tag">Eleições</span>
+                    <span class="topic-tag">Legislação</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="environment" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">🌿</div>
+                <h3>Ambiente</h3>
+                <p>Clima, sustentabilidade, energias renováveis e os desafios ambientais do nosso planeta.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Clima</span>
+                    <span class="topic-tag">Sustentabilidade</span>
+                    <span class="topic-tag">Energias</span>
+                </div>
+            </div>
+
+            <div class="feature-card" data-cat="education" onclick="toggleCard(this, 'cat')">
+                <div class="card-check"><svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="feature-icon">📚</div>
+                <h3>Educação</h3>
+                <p>Tendências pedagógicas, universidades, bolsas de estudo e o futuro do ensino global.</p>
+                <div class="topic-tags">
+                    <span class="topic-tag">Universidades</span>
+                    <span class="topic-tag">Bolsas</span>
+                    <span class="topic-tag">Inovação</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FREQUÊNCIA -->
+    <section class="section" id="frequencia">
+        <div class="section-eyebrow">Passo 2 · Frequência</div>
+        <h2>Com que frequência quer receber notícias?</h2>
+        <p class="lead">Escolha o ritmo que melhor se adapta ao seu dia. Pode alterar esta preferência a qualquer momento.</p>
+
+        <div class="steps" id="frequenciaGrid">
+
+            <div class="step" data-freq="realtime" onclick="toggleFreq(this)">
+                <div class="step-num">⚡</div>
+                <h4>Tempo Real</h4>
+                <p>Notificações imediatas assim que a notícia quebra. Para os mais atentos.</p>
+            </div>
+
+            <div class="step" data-freq="morning" onclick="toggleFreq(this)">
+                <div class="step-num">☀️</div>
+                <h4>Resumo Diário</h4>
+                <p>Um digest matinal com as notícias mais importantes do dia anterior.</p>
+            </div>
+
+            <div class="step" data-freq="weekly" onclick="toggleFreq(this)">
+                <div class="step-num">📅</div>
+                <h4>Semanal</h4>
+                <p>Uma curadoria semanal com os melhores artigos da semana, às sextas-feiras.</p>
+            </div>
+
+            <div class="step" data-freq="custom" onclick="toggleFreq(this)">
+                <div class="step-num">⚙️</div>
+                <h4>Personalizado</h4>
+                <p>Defina os horários e a frequência exacta de acordo com a sua rotina.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FONTES -->
+    <section class="section" id="fontes">
+        <div class="section-eyebrow">Passo 3 · Fontes</div>
+        <h2>Quais as fontes em que confia?</h2>
+        <p class="lead">Selecione as publicações e portais que prefere. As suas notícias virão preferencialmente destas fontes.</p>
+
+        <div class="sources-grid" id="fontesGrid">
+
+            <div class="source-card" data-src="jornal-angola" onclick="toggleSource(this)">
+                <div class="source-avatar">JA</div>
+                <div class="source-info">
+                    <div class="source-name">Jornal de Angola</div>
+                    <div class="source-desc">Nacional · Generalista</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="expansao" onclick="toggleSource(this)">
+                <div class="source-avatar">EX</div>
+                <div class="source-info">
+                    <div class="source-name">Expansão</div>
+                    <div class="source-desc">Nacional · Economia</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="bbc" onclick="toggleSource(this)">
+                <div class="source-avatar">BC</div>
+                <div class="source-info">
+                    <div class="source-name">BBC News</div>
+                    <div class="source-desc">Internacional · Generalista</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="reuters" onclick="toggleSource(this)">
+                <div class="source-avatar">RT</div>
+                <div class="source-info">
+                    <div class="source-name">Reuters</div>
+                    <div class="source-desc">Internacional · Finanças</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="techcrunch" onclick="toggleSource(this)">
+                <div class="source-avatar">TC</div>
+                <div class="source-info">
+                    <div class="source-name">TechCrunch</div>
+                    <div class="source-desc">Internacional · Tecnologia</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="aljazeera" onclick="toggleSource(this)">
+                <div class="source-avatar">AJ</div>
+                <div class="source-info">
+                    <div class="source-name">Al Jazeera</div>
+                    <div class="source-desc">Internacional · Mundo</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="guardian" onclick="toggleSource(this)">
+                <div class="source-avatar">GD</div>
+                <div class="source-info">
+                    <div class="source-name">The Guardian</div>
+                    <div class="source-desc">Internacional · Ambiente</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="source-card" data-src="wired" onclick="toggleSource(this)">
+                <div class="source-avatar">WR</div>
+                <div class="source-info">
+                    <div class="source-name">Wired</div>
+                    <div class="source-desc">Internacional · Tech & Cultura</div>
+                </div>
+                <div class="source-check"><svg viewBox="0 0 10 8" fill="none"><polyline points="1,4 3.5,6.5 9,1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="cta-section" id="cta">
+        <h2>Pronto para o seu feed personalizado?</h2>
+        <p>As suas preferências foram guardadas. A IA já está a preparar as primeiras notícias para si.</p>
+        <button class="btn-primary" onclick="guardarPreferencias()">Ir para o Dashboard →</button>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="landing-footer">
+        <div class="logo">
+            <div class="logo-dot"></div>
+            <div class="logo-text">NEURAL<span>NEWS</span></div>
+        </div>
+        <span>© 2026 NeuralNews · Desenvolvido com IA em Angola</span>
+    </footer>
+
+    <!-- Floating selection bar -->
+    <div class="selection-bar" id="selectionBar">
+        <span><span class="sel-count" id="selCount">0</span> seleções feitas</span>
+        <button class="sel-save" onclick="guardarPreferencias()">Guardar preferências</button>
+    </div>
+
+    <script>
+        // ─── Estado ───────────────────────────────────────────────
+        const state = {
+            cats: new Set(),
+            freq: null,
+            sources: new Set()
+        };
+
+        const TOTAL_CATS    = document.querySelectorAll('[data-cat]').length;
+        const TOTAL_SOURCES = document.querySelectorAll('[data-src]').length;
+
+        // Actualiza os stats do hero
+        document.getElementById('statCats').textContent    = TOTAL_CATS;
+        document.getElementById('statSources').textContent = TOTAL_SOURCES;
+
+        function updateStats() {
+            const total = state.cats.size + (state.freq ? 1 : 0) + state.sources.size;
+            document.getElementById('statSelected').textContent = total;
+
+            const bar = document.getElementById('selectionBar');
+            document.getElementById('selCount').textContent = total;
+            bar.classList.toggle('visible', total > 0);
+        }
+
+        // ─── Toggle categorias ────────────────────────────────────
+        function toggleCard(el, type) {
+            const key = el.dataset.cat;
+            el.classList.toggle('selected');
+            if (el.classList.contains('selected')) state.cats.add(key);
+            else state.cats.delete(key);
+            updateStats();
+        }
+
+        // ─── Toggle frequência (single select) ───────────────────
+        function toggleFreq(el) {
+            document.querySelectorAll('[data-freq]').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            state.freq = el.dataset.freq;
+            updateStats();
+        }
+
+        // ─── Toggle fontes ────────────────────────────────────────
+        function toggleSource(el) {
+            const key = el.dataset.src;
+            el.classList.toggle('selected');
+            if (el.classList.contains('selected')) state.sources.add(key);
+            else state.sources.delete(key);
+            updateStats();
+        }
+
+        // ─── Guardar ──────────────────────────────────────────────
+        function guardarPreferencias() {
+            const prefs = {
+                categorias: [...state.cats],
+                frequencia: state.freq,
+                fontes: [...state.sources]
+            };
+            // Guarda localmente (em produção enviaria ao backend via fetch)
+            localStorage.setItem('nn_preferences', JSON.stringify(prefs));
+            console.log('Preferências guardadas:', prefs);
+            // Redireciona para o dashboard
+            window.location.href = '/dashboard';
+        }
+
+        // ─── Smooth scroll dos links nav ─────────────────────────
+        document.querySelectorAll('.landing-nav a[href^="#"]').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // ─── Barra de progresso de scroll ────────────────────────
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const max = document.body.scrollHeight - window.innerHeight;
+            document.getElementById('progressFill').style.width = (scrolled / max * 100) + '%';
+        });
+    </script>
+
+</body>
+</html>

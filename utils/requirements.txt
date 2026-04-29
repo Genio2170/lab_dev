@@ -1,0 +1,25 @@
+# Requirements para módulos Utils
+# Dependências necessárias para funcionalidades avançadas dos utilitários
+
+# Para funcionalidades de IA (ai_utils.py)
+requests>=2.31.0              # HTTP requests para APIs de IA
+openai>=1.0.0                 # SDK OpenAI (opcional)
+
+# Para validação avançada (validation.py)  
+email-validator>=2.0.0        # Validação robusta de emails
+python-dateutil>=2.8.0        # Parse avançado de datas
+
+# Para logging e monitoramento (error_handler.py)
+python-json-logger>=2.0.0     # Logs estruturados em JSON
+
+# Para processamento de texto (helpers.py)
+python-slugify>=8.0.0         # Geração de slugs com Unicode
+unidecode>=1.3.0              # Conversão de caracteres Unicode
+
+# Dependências do sistema base (já devem estar instaladas)
+flask>=2.3.0
+werkzeug>=2.3.0
+
+# Para desenvolvimento e testes
+pytest>=7.0.0                 # Framework de testes
+pytest-cov>=4.0.0             # Coverage de testes

@@ -5,14 +5,32 @@ from typing import Dict, List, Optional, Tuple
 import logging
 from urllib.parse import urlparse
 import time
+import os
+import sys
+
+# Adicionar caminho para utils
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Importar módulos utils
+from utils import (
+    api_error_handler,
+    create_api_error, 
+    create_network_error,
+    create_validation_error,
+    format_success_response,
+    validate_api_response,
+    validate_article_data,
+    sanitize_user_input,
+    clean_text,
+    format_date,
+    summarize_article,
+    UrlHelper,
+    DataHelper
+)
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-class NewsAPIError(Exception):
-    """Exceção personalizada para erros da API de notícias"""
-    pass
 
 class NewsAPIManager:
     """Gerenciador para consumo de APIs de notícias"""
@@ -62,20 +80,20 @@ class NewsAPIManager:
             return response.json()
             
         except requests.exceptions.Timeout:
-            raise NewsAPIError("Timeout na requisição - API muito lenta")
+            raise create_api_error("Timeout na requisição - API muito lenta", "News API", 408)
         except requests.exceptions.ConnectionError:
-            raise NewsAPIError("Erro de conexão - verificar internet")
+            raise create_network_error("Erro de conexão - verificar internet")
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
-                raise NewsAPIError("Chave de API inválida ou expirada")
+                raise create_api_error("Chave de API inválida ou expirada", "News API", 401)
             elif e.response.status_code == 429:
-                raise NewsAPIError("Limite de requisições excedido - tente mais tarde")
+                raise create_api_error("Limite de requisições excedido - tente mais tarde", "News API", 429)
             else:
-                raise NewsAPIError(f"Erro HTTP {e.response.status_code}")
+                raise create_api_error(f"Erro HTTP {e.response.status_code}", "News API", e.response.status_code)
         except json.JSONDecodeError:
-            raise NewsAPIError("Resposta da API inválida - formato JSON incorreto")
+            raise create_api_error("Resposta da API inválida - formato JSON incorreto", "News API", 502)
         except Exception as e:
-            raise NewsAPIError(f"Erro inesperado: {str(e)}")
+            raise create_api_error(f"Erro inesperado: {str(e)}", "News API", 500)
     
     def _get_cache_key(self, api_name: str, endpoint: str, params: Dict) -> str:
         """Gera chave única para cache"""
@@ -103,13 +121,18 @@ class NewsAPIManager:
             'timestamp': time.time()
         }
     
+    @api_error_handler
     def fetch_newsapi_articles(self, api_key: str, category: str = None, 
                               country: str = 'pt', language: str = 'pt',
-                              page_size: int = 20) -> Tuple[List[Dict], str]:
+                              page_size: int = 20) -> Dict:
         """Busca artigos da NewsAPI.org"""
         
         if not api_key:
-            return [], "Chave da API NewsAPI não fornecida"
+            raise create_validation_error("Chave da API NewsAPI não fornecida")
+        
+        # Sanitizar parâmetros
+        if category:
+            category = sanitize_user_input(category, 50)
         
         try:
             params = {
@@ -127,30 +150,47 @@ class NewsAPIManager:
             cache_key = self._get_cache_key('newsapi', 'top-headlines', params)
             cached_data = self._get_from_cache(cache_key)
             if cached_data:
-                return self._normalize_newsapi_articles(cached_data['articles']), "Cache"
+                articles = self._normalize_newsapi_articles(cached_data['articles'])
+                return format_success_response(
+                    data={'articles': articles, 'source': 'cache'}, 
+                    message=f"Dados do cache - {len(articles)} artigos"
+                )
             
             url = f"{self.api_configs['newsapi']['base_url']}/top-headlines"
             data = self._make_request(url, params)
+            
+            # Validar resposta da API
+            validation = validate_api_response(data, 'news_api')
+            if not validation['valid']:
+                raise create_api_error(f"Dados inválidos da API: {validation['errors']}")
             
             # Salvar no cache
             self._save_to_cache(cache_key, data)
             
             articles = self._normalize_newsapi_articles(data.get('articles', []))
-            return articles, f"Sucesso - {data.get('totalResults', 0)} artigos encontrados"
             
-        except NewsAPIError as e:
-            logger.error(f"Erro NewsAPI: {e}")
-            return [], str(e)
+            # Gerar resumos automáticos usando IA
+            articles = self._add_ai_summaries(articles)
+            
+            return format_success_response(
+                data={'articles': articles, 'source': 'api'}, 
+                message=f"Sucesso - {data.get('totalResults', 0)} artigos processados"
+            )
+            
         except Exception as e:
-            logger.error(f"Erro inesperado NewsAPI: {e}")
-            return [], f"Erro inesperado: {str(e)}"
+            # O decorator api_error_handler vai tratar automaticamente
+            raise e
     
+    @api_error_handler
     def fetch_guardian_articles(self, api_key: str, section: str = None,
-                               page_size: int = 20) -> Tuple[List[Dict], str]:
+                               page_size: int = 20) -> Dict:
         """Busca artigos do The Guardian API"""
         
         if not api_key:
-            return [], "Chave da API Guardian não fornecida"
+            raise create_validation_error("Chave da API Guardian não fornecida")
+        
+        if section:
+            section = sanitize_user_input(section, 50)
         
         try:
             params = {
@@ -168,7 +208,11 @@ class NewsAPIManager:
             cache_key = self._get_cache_key('guardian', 'search', params)
             cached_data = self._get_from_cache(cache_key)
             if cached_data:
-                return self._normalize_guardian_articles(cached_data['results']), "Cache"
+                articles = self._normalize_guardian_articles(cached_data['results'])
+                return format_success_response(
+                    data={'articles': articles, 'source': 'cache'},
+                    message=f"Cache - {len(articles)} artigos"
+                )
             
             url = f"{self.api_configs['guardian']['base_url']}/search"
             data = self._make_request(url, params)
@@ -177,23 +221,28 @@ class NewsAPIManager:
             self._save_to_cache(cache_key, data['response'])
             
             articles = self._normalize_guardian_articles(data['response']['results'])
-            return articles, f"Sucesso - {data['response']['total']} artigos encontrados"
+            articles = self._add_ai_summaries(articles)
             
-        except NewsAPIError as e:
-            logger.error(f"Erro Guardian: {e}")
-            return [], str(e)
+            return format_success_response(
+                data={'articles': articles, 'source': 'api'},
+                message=f"Guardian - {data['response']['total']} artigos encontrados"
+            )
+            
         except Exception as e:
-            logger.error(f"Erro inesperado Guardian: {e}")
-            return [], f"Erro inesperado: {str(e)}"
+            # O decorator api_error_handler vai tratar automaticamente
+            raise e
     
+    @api_error_handler
     def fetch_rss_articles(self, rss_urls: List[str], 
-                          max_articles: int = 50) -> Tuple[List[Dict], str]:
+                          max_articles: int = 50) -> Dict:
         """Busca artigos de feeds RSS"""
         
         try:
             import feedparser
         except ImportError:
-            return [], "Biblioteca feedparser não instalada - execute: pip install feedparser"
+            raise create_validation_error(
+                "Biblioteca feedparser não instalada - execute: pip install feedparser"
+            )
         
         all_articles = []
         successful_feeds = 0
@@ -230,7 +279,13 @@ class NewsAPIManager:
         all_articles.sort(key=lambda x: x['published_at'], reverse=True)
         all_articles = all_articles[:max_articles]
         
-        return all_articles, f"Sucesso - {successful_feeds} feeds processados"
+        # Adicionar resumos IA
+        all_articles = self._add_ai_summaries(all_articles)
+        
+        return format_success_response(
+            data={'articles': all_articles, 'source': 'rss'},
+            message=f"RSS - {successful_feeds} feeds processados, {len(all_articles)} artigos"
+        )
     
     def _normalize_newsapi_articles(self, articles: List[Dict]) -> List[Dict]:
         """Normaliza artigos da NewsAPI para formato padrão"""
@@ -325,19 +380,180 @@ class NewsAPIManager:
         
         return normalized
     
+    def _add_ai_summaries(self, articles: List[Dict]) -> List[Dict]:
+        """Adiciona resumos automáticos usando IA"""
+        for article in articles:
+            try:
+                # Gerar resumo se houver conteúdo suficiente
+                content = article.get('content', '') or article.get('description', '')
+                if content and len(content) > 100:
+                    summary, source = summarize_article(
+                        content, 
+                        article.get('title', ''), 
+                        max_length=150
+                    )
+                    article['ai_summary'] = summary
+                    article['summary_source'] = source
+                else:
+                    article['ai_summary'] = article.get('description', '')[:150]
+                    article['summary_source'] = 'original'
+            except Exception as e:
+                logger.warning(f"Erro ao gerar resumo: {e}")
+                article['ai_summary'] = article.get('description', '')
+                article['summary_source'] = 'fallback'
+        
+        return articles
+    
+    def search_articles(self, query: str, api_key: str = None, 
+                       sources: List[str] = None, language: str = 'pt',
+                       sort_by: str = 'relevancy', page_size: int = 20) -> Dict:
+        """Busca artigos por query usando múltiplas fontes"""
+        query = sanitize_user_input(query, 100)
+        
+        if not query:
+            raise create_validation_error("Query de busca não pode estar vazia")
+        
+        all_articles = []
+        
+        # Buscar na NewsAPI se chave fornecida
+        if api_key:
+            try:
+                newsapi_result = self._search_newsapi(query, api_key, language, sort_by, page_size)
+                if newsapi_result['success']:
+                    all_articles.extend(newsapi_result['data']['articles'])
+            except Exception as e:
+                logger.warning(f"Erro na busca NewsAPI: {e}")
+        
+        # Buscar em feeds RSS se disponíveis
+        try:
+            rss_articles = self._search_rss_feeds(query, page_size // 2)
+            all_articles.extend(rss_articles)
+        except Exception as e:
+            logger.warning(f"Erro na busca RSS: {e}")
+        
+        # Remover duplicatas por URL
+        unique_articles = []
+        seen_urls = set()
+        
+        for article in all_articles:
+            url = article.get('url', '')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_articles.append(article)
+        
+        # Ordenar por relevância e data
+        unique_articles.sort(
+            key=lambda x: (x.get('published_at', datetime.now()), x.get('title', '')),
+            reverse=True
+        )
+        
+        # Adicionar resumos IA
+        unique_articles = self._add_ai_summaries(unique_articles[:page_size])
+        
+        return format_success_response(
+            data={
+                'articles': unique_articles,
+                'query': query,
+                'total_found': len(unique_articles)
+            },
+            message=f"Encontrados {len(unique_articles)} artigos para '{query}'"
+        )
+    
+    def _search_newsapi(self, query: str, api_key: str, language: str, 
+                       sort_by: str, page_size: int) -> Dict:
+        """Busca específica na NewsAPI"""
+        params = {
+            'apiKey': api_key,
+            'q': query,
+            'language': language,
+            'sortBy': sort_by,
+            'pageSize': min(page_size, 100)
+        }
+        
+        url = f"{self.api_configs['newsapi']['base_url']}/everything"
+        data = self._make_request(url, params)
+        
+        articles = self._normalize_newsapi_articles(data.get('articles', []))
+        
+        return format_success_response(
+            data={'articles': articles},
+            message=f"NewsAPI: {len(articles)} artigos"
+        )
+    
+    def _search_rss_feeds(self, query: str, max_articles: int) -> List[Dict]:
+        """Busca em feeds RSS por palavras-chave"""
+        # Feeds RSS portugueses e angolanos
+        rss_feeds = [
+            'https://www.rtp.pt/noticias/rss.php',
+            'https://www.publico.pt/rss.xml',
+            'https://feeds.feedburner.com/observador-economia',
+            # Adicione mais feeds conforme necessário
+        ]
+        
+        try:
+            articles, _ = self.fetch_rss_articles(rss_feeds, max_articles * 2)
+            
+            # Filtrar artigos por query
+            query_lower = query.lower()
+            filtered_articles = []
+            
+            for article in articles:
+                title = article.get('title', '').lower()
+                description = article.get('description', '').lower()
+                
+                if query_lower in title or query_lower in description:
+                    filtered_articles.append(article)
+            
+            return filtered_articles[:max_articles]
+            
+        except Exception as e:
+            logger.warning(f"Erro na busca RSS: {e}")
+            return []
+    
+    def get_articles_by_category(self, category: str, api_key: str = None,
+                                language: str = 'pt', page_size: int = 20) -> Dict:
+        """Obtém artigos de uma categoria específica"""
+        category = sanitize_user_input(category, 50).lower()
+        
+        # Mapear categorias para português
+        category_mapping = {
+            'tecnologia': 'technology',
+            'ciência': 'science', 
+            'saúde': 'health',
+            'desporto': 'sports',
+            'negócios': 'business',
+            'política': 'general',
+            'geral': 'general'
+        }
+        
+        newsapi_category = category_mapping.get(category, 'general')
+        
+        if api_key:
+            result = self.fetch_newsapi_articles(
+                api_key=api_key,
+                category=newsapi_category,
+                language=language,
+                page_size=page_size
+            )
+            
+            if result['success']:
+                return format_success_response(
+                    data={
+                        'articles': result['data']['articles'],
+                        'category': category,
+                        'total': len(result['data']['articles'])
+                    },
+                    message=f"Artigos da categoria {category}"
+                )
+        
+        return format_success_response(
+            data={'articles': [], 'category': category},
+            message="Nenhum artigo encontrado para esta categoria"
+        )
+    
     def _clean_text(self, text: str) -> str:
-        """Remove HTML e limpa texto"""
-        if not text:
-            return ''
-        
-        # Remover tags HTML básicas
-        import re
-        text = re.sub(r'<[^>]+>', '', text)
-        
-        # Limpar espaços excessivos
-        text = re.sub(r'\s+', ' ', text).strip()
-        
-        return text
+        """Remove HTML e limpa texto usando utils"""
+        return clean_text(text)
     
     def _parse_date(self, date_str: str) -> datetime:
         """Converte string de data para datetime"""
@@ -413,22 +629,9 @@ class NewsAPIManager:
         return 'geral'
     
     def _validate_article(self, article: Dict) -> bool:
-        """Valida se artigo tem dados mínimos necessários"""
-        required_fields = ['title', 'url', 'source']
-        
-        for field in required_fields:
-            if not article.get(field):
-                return False
-        
-        # Verificar se título não é muito curto
-        if len(article['title']) < 10:
-            return False
-        
-        # Verificar se URL é válida
-        if not article['url'].startswith('http'):
-            return False
-        
-        return True
+        """Valida se artigo tem dados mínimos necessários usando utils"""
+        validation = validate_article_data(article)
+        return validation['valid']
     
     def get_available_categories(self) -> Dict[str, List[str]]:
         """Retorna categorias disponíveis por API"""

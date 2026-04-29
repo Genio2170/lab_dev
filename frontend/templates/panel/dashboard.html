@@ -40,8 +40,8 @@
       <div class="logo-text">NEURAL<span>NEWS</span></div>
     </div>
     <nav>
-      <button class="btn-nav"> Favoritos</button>
-      <button class="btn-nav">⚙Preferências</button>
+      <button  onclick="window.location.href='/favoritos'" class="btn-nav" > Favoritos</button>
+      <button  onclick="window.location.href='/preferencias'" class="btn-nav">⚙Preferências</button>
       <div class="user-chip">
         <div class="user-avatar">{{ user.full_name[0] if user and user.full_name else 'U' }}</div>
         <span class="user-name">{{ user.full_name if user and user.full_name else 'Utilizador' }}</span>

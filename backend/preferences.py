@@ -1,8 +1,36 @@
+#!/usr/bin/env python3
+"""
+Preferences - Módulo para gestão de preferências de leitura dos utilizadores
+Integra com utils para validação, IA e tratamento de erros
+"""
+
+import sys
+import os
 from typing import Dict, List, Optional, Tuple, Set
 from datetime import datetime, timedelta
-from database.bd import Conexao
 import logging
-import json
+
+# Adicionar caminho para utils
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Importar módulos utils
+from utils import (
+    api_error_handler,
+    create_validation_error,
+    create_database_error,
+    create_not_found_error,
+    format_success_response,
+    validate_user_preferences,
+    sanitize_user_input,
+    clean_text,
+    analyze_user_patterns,
+    get_recommendations,
+    DataHelper,
+    JsonHelper
+)
+
+# Importar conexão com banco
+from database.bd import Conexao
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +92,15 @@ class PreferencesManager:
             }
         }
     
-    def get_user_preferences(self, user_id: int) -> Tuple[Optional[Dict], str]:
+    @api_error_handler
+    def get_user_preferences(self, user_id: int) -> Dict:
         """Busca preferências completas do utilizador"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
         try:
             if not self.db.conectar():
-                return None, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id})
             
             # Buscar categorias preferidas
             categories_data = self.db.buscar("""
@@ -110,28 +142,37 @@ class PreferencesManager:
                 'custom_keywords': []
             }
             
-            return preferences, "Preferências carregadas com sucesso"
+            return format_success_response(
+                data=preferences,
+                message="Preferências carregadas com sucesso"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao buscar preferências do usuário {user_id}: {e}")
-            return None, f"Erro ao buscar preferências: {str(e)}"
+            raise create_database_error("buscar preferências", {"user_id": user_id, "error": str(e)})
     
-    def add_preferred_category(self, user_id: int, category_id: int) -> Tuple[bool, str]:
+    @api_error_handler
+    def add_preferred_category(self, user_id: int, category_id: int) -> Dict:
         """Adiciona categoria às preferências do utilizador"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not category_id or category_id <= 0:
+            raise create_validation_error("ID de categoria inválido")
+        
         try:
             if not self.db.conectar():
-                return False, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id, "category_id": category_id})
             
             # Verificar se categoria existe
             category_exists = self.db.buscar("""
-                SELECT id FROM categories WHERE id = ?
+                SELECT id, name FROM categories WHERE id = ?
             """, (category_id,))
             
             if not category_exists:
                 self.db.desconectar()
-                return False, "Categoria não encontrada"
+                raise create_not_found_error("Categoria", category_id)
             
             # Verificar se preferência já existe
             existing = self.db.buscar("""
@@ -140,7 +181,10 @@ class PreferencesManager:
             
             if existing:
                 self.db.desconectar()
-                return False, "Categoria já está nas preferências"
+                return format_success_response(
+                    data={'category_name': category_exists[0][1], 'already_exists': True},
+                    message="Categoria já está nas preferências"
+                )
             
             # Adicionar preferência
             self.db.executar("""
@@ -148,13 +192,16 @@ class PreferencesManager:
             """, (user_id, category_id))
             
             self.db.desconectar()
-            return True, "Categoria adicionada às preferências"
+            
+            return format_success_response(
+                data={'category_name': category_exists[0][1], 'category_id': category_id},
+                message="Categoria adicionada às preferências"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao adicionar categoria preferida: {e}")
-            return False, f"Erro ao adicionar categoria: {str(e)}"
+            raise create_database_error("adicionar categoria preferida", {"user_id": user_id, "category_id": category_id, "error": str(e)})
     
     def remove_preferred_category(self, user_id: int, category_id: int) -> Tuple[bool, str]:
         """Remove categoria das preferências do utilizador"""
@@ -225,11 +272,18 @@ class PreferencesManager:
             logger.error(f"Erro ao definir categorias preferidas: {e}")
             return False, f"Erro ao definir categorias: {str(e)}"
     
-    def get_recommended_articles(self, user_id: int, limit: int = 20) -> Tuple[List[Dict], str]:
+    @api_error_handler
+    def get_recommended_articles(self, user_id: int, limit: int = 20) -> Dict:
         """Busca artigos recomendados baseados nas preferências do utilizador"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if limit < 1 or limit > 100:
+            raise create_validation_error("Limite deve ser entre 1 e 100")
+        
         try:
             if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id})
             
             # Buscar artigos das categorias preferidas
             recommended = self.db.buscar("""
@@ -271,29 +325,41 @@ class PreferencesManager:
             self.db.desconectar()
             
             articles = []
-            for news in recommended:
+            for i, news in enumerate(recommended):
                 (news_id, title, description, url, source,
                  image_url, published_at, category_name) = news
                 
+                # Limpar dados
+                clean_title = clean_text(title) if title else ""
+                clean_description = clean_text(description) if description else ""
+                
                 articles.append({
                     'id': news_id,
-                    'title': title,
-                    'description': description,
+                    'title': clean_title,
+                    'description': clean_description,
                     'url': url,
                     'source': source,
                     'image_url': image_url,
                     'published_at': published_at,
                     'category': category_name,
-                    'recommendation_reason': 'Categoria preferida' if news in recommended[:len(recommended) - len(getattr(self, '_additional', []))] else 'Sugestão geral'
+                    'recommendation_reason': 'Categoria preferida' if i < len(recommended) - len(additional) else 'Sugestão geral'
                 })
             
-            return articles, f"{len(articles)} artigos recomendados"
+            return format_success_response(
+                data={
+                    'articles': articles,
+                    'total': len(articles),
+                    'limit': limit,
+                    'from_preferences': len(recommended) - len(additional) if 'additional' in locals() else len(recommended),
+                    'general_suggestions': len(additional) if 'additional' in locals() else 0
+                },
+                message=f"{len(articles)} artigos recomendados"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao buscar recomendações: {e}")
-            return [], f"Erro ao buscar recomendações: {str(e)}"
+            raise create_database_error("buscar recomendações", {"user_id": user_id, "error": str(e)})
     
     def get_available_sources(self) -> Dict[str, Dict]:
         """Retorna todas as fontes disponíveis com suas informações"""

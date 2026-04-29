@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
 from backend.auth import AuthManager, login_required
 from backend.register import RegisterManager
+from backend.favorites import FavoritesManager
 import os
 
 # Inicializar a aplicação
@@ -12,6 +13,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'neural_news_dev_key_2024_change_i
 # Instâncias dos gerenciadores
 auth_manager = AuthManager()
 register_manager = RegisterManager()
+favorites_manager = FavoritesManager()
 
 # ============= ROUTES =============
 @app.route('/', methods=['GET'])
@@ -35,6 +37,13 @@ def dash():
     user_info = getattr(request, 'current_user', None)
     return render_template('panel/dashboard.html', user=user_info)
 
+# Alias para dashboard
+@app.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard():
+    user_info = getattr(request, 'current_user', None)
+    return render_template('panel/dashboard.html', user=user_info)
+
 @app.route('/artigo', methods=['GET'])
 @login_required
 def article():
@@ -43,9 +52,56 @@ def article():
 
 @app.route('/favoritos', methods=['GET'])
 @login_required
-def favourites():
+def favorites():
     user_info = getattr(request, 'current_user', None)
-    return render_template('panel/faovurites.html', user=user_info)
+    
+    # Obter parâmetros de filtro
+    category = request.args.get('category', 'all')
+    sort_by = request.args.get('sort', 'added_at')
+    search_query = request.args.get('search', '')
+    page = int(request.args.get('page', 1))
+    limit = 12  # Itens por página
+    
+    try:
+        # Obter favoritos do usuário
+        favorites_result = favorites_manager.get_user_favorites(
+            user_id=user_info['id'],
+            category=None if category == 'all' else category,
+            sort_by=sort_by,
+            search_query=search_query if search_query else None,
+            limit=limit,
+            offset=(page - 1) * limit
+        )
+        
+        # Obter estatísticas dos favoritos
+        stats_result = favorites_manager.get_user_favorites_stats(user_info['id'])
+        
+        # Obter categorias disponíveis
+        categories_result = favorites_manager.get_user_categories(user_info['id'])
+        
+        # Preparar dados para o template
+        template_data = {
+            'user': user_info,
+            'favorites': favorites_result,
+            'favorites_stats': stats_result.get('data') if stats_result and stats_result.get('success') else None,
+            'available_categories': categories_result.get('data', []) if categories_result and categories_result.get('success') else [],
+            'current_category': category,
+            'sort_by': sort_by,
+            'search_query': search_query
+        }
+        
+        return render_template('panel/favorites.html', **template_data)
+        
+    except Exception as e:
+        flash(f'Erro ao carregar favoritos: {str(e)}', 'error')
+        return render_template('panel/favorites.html', 
+                             user=user_info,
+                             favorites=None,
+                             favorites_stats=None,
+                             available_categories=[],
+                             current_category='all',
+                             sort_by='added_at',
+                             search_query='')
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # Se usuário já está logado, redirecionar para dashboard
@@ -312,6 +368,193 @@ def api_validate_session():
         'success': True,
         'valid': False
     })
+
+# ============= FAVORITES API ROUTES =============
+@app.route('/api/favorites', methods=['GET'])
+@login_required
+def api_get_favorites():
+    """API endpoint para obter favoritos do usuário"""
+    user_info = getattr(request, 'current_user', None)
+    
+    # Obter parâmetros de filtro
+    category = request.args.get('category')
+    sort_by = request.args.get('sort', 'added_at')
+    search_query = request.args.get('search')
+    limit = min(int(request.args.get('limit', 20)), 50)  # Máximo de 50 itens
+    offset = int(request.args.get('offset', 0))
+    
+    try:
+        result = favorites_manager.get_user_favorites(
+            user_id=user_info['id'],
+            category=category,
+            sort_by=sort_by,
+            search_query=search_query,
+            limit=limit,
+            offset=offset
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao obter favoritos: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites', methods=['POST'])
+@login_required
+def api_add_favorite():
+    """API endpoint para adicionar um favorito"""
+    user_info = getattr(request, 'current_user', None)
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({
+            'success': False,
+            'message': 'Dados não fornecidos'
+        }), 400
+    
+    # Verificar se tem news_id ou dados de artigo externo
+    news_id = data.get('news_id')
+    
+    try:
+        if news_id:
+            # Adicionar favorito por news_id
+            result = favorites_manager.add_favorite_by_news_id(
+                user_id=user_info['id'],
+                news_id=news_id,
+                notes=data.get('notes', ''),
+                tags=data.get('tags', [])
+            )
+        else:
+            # Adicionar favorito com dados externos
+            result = favorites_manager.add_favorite(
+                user_id=user_info['id'],
+                title=data.get('title', ''),
+                description=data.get('description', ''),
+                external_url=data.get('url', ''),
+                source=data.get('source', ''),
+                category=data.get('category', 'Geral'),
+                notes=data.get('notes', ''),
+                tags=data.get('tags', [])
+            )
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao adicionar favorito: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/<int:favorite_id>', methods=['DELETE'])
+@login_required
+def api_remove_favorite(favorite_id):
+    """API endpoint para remover um favorito"""
+    user_info = getattr(request, 'current_user', None)
+    
+    try:
+        result = favorites_manager.remove_favorite(user_info['id'], favorite_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao remover favorito: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/<int:favorite_id>/read', methods=['PATCH'])
+@login_required
+def api_toggle_read_status(favorite_id):
+    """API endpoint para alterar status de leitura de um favorito"""
+    user_info = getattr(request, 'current_user', None)
+    data = request.get_json()
+    
+    if not data or 'is_read' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Status de leitura não fornecido'
+        }), 400
+    
+    try:
+        result = favorites_manager.update_read_status(
+            user_id=user_info['id'],
+            favorite_id=favorite_id,
+            is_read=bool(data['is_read'])
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao atualizar status: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/<int:favorite_id>/notes', methods=['PATCH'])
+@login_required
+def api_update_notes(favorite_id):
+    """API endpoint para atualizar notas de um favorito"""
+    user_info = getattr(request, 'current_user', None)
+    data = request.get_json()
+    
+    if not data or 'notes' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Notas não fornecidas'
+        }), 400
+    
+    try:
+        result = favorites_manager.update_notes(
+            user_id=user_info['id'],
+            favorite_id=favorite_id,
+            notes=data['notes']
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao atualizar notas: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/stats', methods=['GET'])
+@login_required
+def api_favorites_stats():
+    """API endpoint para obter estatísticas dos favoritos"""
+    user_info = getattr(request, 'current_user', None)
+    
+    try:
+        result = favorites_manager.get_user_favorites_stats(user_info['id'])
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao obter estatísticas: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/categories', methods=['GET'])
+@login_required
+def api_favorites_categories():
+    """API endpoint para obter categorias de favoritos do usuário"""
+    user_info = getattr(request, 'current_user', None)
+    
+    try:
+        result = favorites_manager.get_user_categories(user_info['id'])
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao obter categorias: {str(e)}'
+        }), 500
+
+@app.route('/api/favorites/check/<int:news_id>', methods=['GET'])
+@login_required
+def api_check_favorite_status(news_id):
+    """API endpoint para verificar se um artigo está nos favoritos"""
+    user_info = getattr(request, 'current_user', None)
+    
+    try:
+        result = favorites_manager.is_favorite(user_info['id'], news_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao verificar favorito: {str(e)}'
+        }), 500
 
 
 # ============= MAIN =============

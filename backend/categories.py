@@ -1,403 +1,368 @@
-from typing import Dict, List, Optional, Tuple
+#!/usr/bin/env python3
+"""
+Categories - Módulo para organização de notícias por categorias e filtragem
+Integra com os módulos utils para validação, tratamento de erros e helpers
+"""
+
+import sys
+import os
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-import re
-from database.bd import Conexao
 import logging
+
+# Adicionar caminho para utils
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Importar módulos utils
+from utils import (
+    api_error_handler,
+    create_validation_error,
+    create_database_error,
+    create_not_found_error,
+    format_success_response,
+    validate_search_input,
+    sanitize_user_input,
+    clean_text,
+    normalize_string,
+    DataHelper
+)
+
+# Importar conexão com banco
+from database.bd import Conexao
 
 logger = logging.getLogger(__name__)
 
 class CategoryManager:
-    """Gerenciador para categorização e filtragem de notícias"""
+    """Gerenciador de categorias para organização de notícias"""
     
     def __init__(self):
         self.db = Conexao()
         
-        # Mapeamento de palavras-chave para categorias (português)
-        self.keywords_mapping = {
-            'tecnologia': [
-                'tecnologia', 'software', 'hardware', 'inteligência artificial',
-                'machine learning', 'programação', 'desenvolvimento', 'aplicações',
-                'smartphone', 'computador', 'internet', 'digital', 'online',
-                'startup', 'inovação', 'tech', 'google', 'microsoft', 'apple',
-                'meta', 'facebook', 'instagram', 'whatsapp', 'twitter', 'tiktok',
-                'cibersegurança', 'blockchain', 'bitcoin', 'criptomoeda',
-                'robótica', 'drones', 'iot', 'cloud', 'nuvem', 'data center'
-            ],
-            'politica': [
-                'política', 'governo', 'presidente', 'ministro', 'parlamento',
-                'assembleia', 'eleições', 'votação', 'partido', 'democracia',
-                'ditadura', 'corrupção', 'escândalo', 'lei', 'legislação',
-                'constituição', 'tribunal', 'justiça', 'estado', 'nação',
-                'diplomacia', 'relações internacionais', 'união europeia',
-                'nato', 'onu', 'guerra', 'conflito', 'paz', 'tratado'
-            ],
-            'economia': [
-                'economia', 'financeiro', 'mercado', 'bolsa', 'investimento',
-                'banco', 'crédito', 'empréstimo', 'inflação', 'deflação',
-                'pib', 'crescimento', 'recessão', 'crise', 'recovery',
-                'juros', 'taxa', 'câmbio', 'moeda', 'euro', 'dólar',
-                'empresa', 'negócio', 'startup', 'ipo', 'fusão', 'aquisição',
-                'emprego', 'desemprego', 'salário', 'pensão', 'reforma'
-            ],
-            'desporto': [
-                'futebol', 'basquetebol', 'ténis', 'natação', 'atletismo',
-                'ciclismo', 'motociclismo', 'automobilismo', 'formula 1',
-                'campeonato', 'liga', 'copa', 'mundial', 'europeu',
-                'olimpíadas', 'paralímpicos', 'jogador', 'atleta', 'treinador',
-                'clube', 'equipa', 'vitória', 'derrota', 'golo', 'ponto',
-                'benfica', 'porto', 'sporting', 'braga', 'champions league'
-            ],
-            'saude': [
-                'saúde', 'medicina', 'hospital', 'médico', 'enfermeiro',
-                'doença', 'sintoma', 'tratamento', 'medicamento', 'vacina',
-                'pandemia', 'epidemia', 'vírus', 'bactéria', 'covid',
-                'cancro', 'diabetes', 'coração', 'mental', 'psicologia',
-                'nutrição', 'dieta', 'exercício', 'bem-estar', 'stress',
-                'investigação médica', 'ensaio clínico', 'farmácia'
-            ],
-            'ciencia': [
-                'ciência', 'investigação', 'estudo', 'descoberta', 'experiência',
-                'laboratório', 'universidade', 'professor', 'científico',
-                'física', 'química', 'biologia', 'matemática', 'astronomia',
-                'espaço', 'planeta', 'estrela', 'nasa', 'esa', 'foguete',
-                'energia', 'renovável', 'solar', 'eólica', 'nuclear',
-                'ambiente', 'clima', 'aquecimento global', 'sustentabilidade'
-            ],
-            'cultura': [
-                'cultura', 'arte', 'música', 'cinema', 'teatro', 'dança',
-                'literatura', 'livro', 'autor', 'escritor', 'poeta',
-                'museu', 'exposição', 'festival', 'concerto', 'espetáculo',
-                'filme', 'série', 'ator', 'actriz', 'realizador', 'produtor',
-                'artista', 'pintor', 'escultor', 'galeria', 'património',
-                'tradição', 'costumes', 'folclore', 'história', 'arqueologia'
-            ],
-            'internacional': [
-                'internacional', 'mundial', 'global', 'país', 'nação',
-                'fronteira', 'imigração', 'refugiados', 'diplomacia',
-                'embaixada', 'consulado', 'tratado', 'acordo', 'cimeira',
-                'união europeia', 'estados unidos', 'china', 'rússia',
-                'brasil', 'áfrica', 'ásia', 'europa', 'américa', 'oceania'
-            ],
-            'local': [
-                'portugal', 'lisboa', 'porto', 'coimbra', 'braga', 'faro',
-                'aveiro', 'viseu', 'leiria', 'santarém', 'setúbal',
-                'câmara municipal', 'autarquia', 'junta de freguesia',
-                'município', 'região', 'distrito', 'concelho', 'aldeia',
-                'cidade', 'vila', 'bairro', 'rua', 'avenida', 'praça'
-            ],
-            'ambiente': [
-                'ambiente', 'ecologia', 'natureza', 'biodiversidade',
-                'conservação', 'proteção', 'poluição', 'sustentabilidade',
-                'reciclagem', 'energia renovável', 'solar', 'eólica',
-                'floresta', 'árvore', 'animal', 'espécie', 'extinção',
-                'clima', 'aquecimento global', 'carbono', 'emissões',
-                'oceano', 'mar', 'rio', 'água', 'ar', 'solo'
-            ]
-        }
-        
-        # Categorias em diferentes idiomas para normalização
-        self.category_translations = {
-            'business': 'economia',
-            'technology': 'tecnologia',
-            'politics': 'politica',
-            'sport': 'desporto',
-            'sports': 'desporto',
-            'health': 'saude',
-            'science': 'ciencia',
-            'entertainment': 'cultura',
-            'world': 'internacional',
-            'general': 'geral',
-            'local': 'local',
-            'environment': 'ambiente'
+        # Categorias padrão do sistema
+        self.default_categories = {
+            'geral': {
+                'name': 'Geral',
+                'description': 'Notícias gerais e variadas',
+                'keywords': ['geral', 'notícias', 'atualidades', 'informação'],
+                'color': '#6B7280',
+                'icon': '📰'
+            },
+            'tecnologia': {
+                'name': 'Tecnologia',
+                'description': 'Inovação, IA, programação e tendências tech',
+                'keywords': ['tecnologia', 'ia', 'inteligencia artificial', 'programacao', 'software', 'hardware', 'inovacao'],
+                'color': '#3B82F6',
+                'icon': '💻'
+            },
+            'ciencia': {
+                'name': 'Ciência',
+                'description': 'Descobertas científicas, pesquisa e desenvolvimento',
+                'keywords': ['ciencia', 'pesquisa', 'descoberta', 'estudo', 'laboratorio', 'investigacao'],
+                'color': '#10B981',
+                'icon': '🔬'
+            },
+            'saude': {
+                'name': 'Saúde',
+                'description': 'Medicina, bem-estar e cuidados de saúde',
+                'keywords': ['saude', 'medicina', 'hospital', 'tratamento', 'vacina', 'doenca'],
+                'color': '#EF4444',
+                'icon': '🏥'
+            },
+            'negocios': {
+                'name': 'Negócios',
+                'description': 'Economia, finanças e mundo empresarial',
+                'keywords': ['negocios', 'economia', 'financas', 'empresa', 'mercado', 'investimento'],
+                'color': '#F59E0B',
+                'icon': '💼'
+            },
+            'desporto': {
+                'name': 'Desporto',
+                'description': 'Futebol, modalidades e eventos desportivos',
+                'keywords': ['desporto', 'futebol', 'jogos', 'competicao', 'atleta', 'equipa'],
+                'color': '#8B5CF6',
+                'icon': '⚽'
+            },
+            'politica': {
+                'name': 'Política',
+                'description': 'Governo, eleições e políticas públicas',
+                'keywords': ['politica', 'governo', 'eleicoes', 'presidente', 'ministro', 'parlamento'],
+                'color': '#DC2626',
+                'icon': '🏛️'
+            },
+            'cultura': {
+                'name': 'Cultura',
+                'description': 'Arte, música, cinema e entretenimento',
+                'keywords': ['cultura', 'arte', 'musica', 'cinema', 'teatro', 'festival'],
+                'color': '#EC4899',
+                'icon': '🎭'
+            },
+            'ambiente': {
+                'name': 'Ambiente',
+                'description': 'Sustentabilidade, clima e ecologia',
+                'keywords': ['ambiente', 'clima', 'sustentabilidade', 'ecologia', 'poluicao', 'natureza'],
+                'color': '#059669',
+                'icon': '🌱'
+            }
         }
     
-    def get_all_categories(self) -> Tuple[List[Dict], str]:
-        """Busca todas as categorias da base de dados"""
+    @api_error_handler
+    def get_all_categories(self, include_stats: bool = False) -> Dict:
+        """
+        Retorna todas as categorias disponíveis
+        
+        Args:
+            include_stats: Se deve incluir estatísticas de uso
+            
+        Returns:
+            Dicionário com categorias e opcionalmente estatísticas
+        """
         try:
-            if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
-            
-            categories_data = self.db.buscar("""
-                SELECT id, name, 
-                       (SELECT COUNT(*) FROM news WHERE category_id = categories.id) as news_count
-                FROM categories 
-                ORDER BY name
-            """)
-            
-            self.db.desconectar()
-            
             categories = []
-            for cat_data in categories_data:
-                category_id, name, news_count = cat_data
-                categories.append({
-                    'id': category_id,
-                    'name': name,
-                    'slug': self._create_slug(name),
-                    'news_count': news_count or 0,
-                    'keywords': self.keywords_mapping.get(name.lower(), [])
-                })
             
-            return categories, "Categorias carregadas com sucesso"
-            
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao buscar categorias: {e}")
-            return [], f"Erro ao buscar categorias: {str(e)}"
-    
-    def get_category_by_id(self, category_id: int) -> Tuple[Optional[Dict], str]:
-        """Busca categoria específica por ID"""
-        try:
-            if not self.db.conectar():
-                return None, "Erro de conexão com a base de dados"
-            
-            category_data = self.db.buscar("""
-                SELECT id, name,
-                       (SELECT COUNT(*) FROM news WHERE category_id = categories.id) as news_count
-                FROM categories 
-                WHERE id = ?
-            """, (category_id,))
-            
-            self.db.desconectar()
-            
-            if not category_data:
-                return None, "Categoria não encontrada"
-            
-            cat_id, name, news_count = category_data[0]
-            category = {
-                'id': cat_id,
-                'name': name,
-                'slug': self._create_slug(name),
-                'news_count': news_count or 0,
-                'keywords': self.keywords_mapping.get(name.lower(), [])
-            }
-            
-            return category, "Categoria encontrada"
-            
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao buscar categoria {category_id}: {e}")
-            return None, f"Erro ao buscar categoria: {str(e)}"
-    
-    def get_category_by_name(self, name: str) -> Tuple[Optional[Dict], str]:
-        """Busca categoria por nome"""
-        try:
-            if not self.db.conectar():
-                return None, "Erro de conexão com a base de dados"
-            
-            category_data = self.db.buscar("""
-                SELECT id, name,
-                       (SELECT COUNT(*) FROM news WHERE category_id = categories.id) as news_count
-                FROM categories 
-                WHERE LOWER(name) = LOWER(?)
-            """, (name,))
-            
-            self.db.desconectar()
-            
-            if not category_data:
-                return None, f"Categoria '{name}' não encontrada"
-            
-            cat_id, cat_name, news_count = category_data[0]
-            category = {
-                'id': cat_id,
-                'name': cat_name,
-                'slug': self._create_slug(cat_name),
-                'news_count': news_count or 0,
-                'keywords': self.keywords_mapping.get(cat_name.lower(), [])
-            }
-            
-            return category, "Categoria encontrada"
-            
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao buscar categoria '{name}': {e}")
-            return None, f"Erro ao buscar categoria: {str(e)}"
-    
-    def create_category(self, name: str) -> Tuple[Optional[int], str]:
-        """Cria nova categoria"""
-        try:
-            if not name or len(name.strip()) < 2:
-                return None, "Nome da categoria deve ter pelo menos 2 caracteres"
-            
-            name = name.strip().title()
-            
-            if not self.db.conectar():
-                return None, "Erro de conexão com a base de dados"
-            
-            # Verificar se categoria já existe
-            existing = self.db.buscar("""
-                SELECT id FROM categories WHERE LOWER(name) = LOWER(?)
-            """, (name,))
-            
-            if existing:
-                self.db.desconectar()
-                return None, f"Categoria '{name}' já existe"
-            
-            # Criar categoria
-            self.db.executar("""
-                INSERT INTO categories (name) VALUES (?)
-            """, (name,))
-            
-            # Buscar ID da categoria criada
-            new_category = self.db.buscar("""
-                SELECT id FROM categories WHERE LOWER(name) = LOWER(?)
-            """, (name,))
-            
-            self.db.desconectar()
-            
-            if new_category:
-                return new_category[0][0], f"Categoria '{name}' criada com sucesso"
-            else:
-                return None, "Erro ao criar categoria"
+            for cat_id, cat_data in self.default_categories.items():
+                category = {
+                    'id': cat_id,
+                    'name': cat_data['name'],
+                    'description': cat_data['description'],
+                    'color': cat_data['color'],
+                    'icon': cat_data['icon'],
+                    'slug': cat_id
+                }
                 
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao criar categoria '{name}': {e}")
-            return None, f"Erro ao criar categoria: {str(e)}"
-    
-    def categorize_article(self, title: str, description: str, content: str = "") -> str:
-        """Categoriza artigo baseado no conteúdo usando palavras-chave"""
-        
-        # Combinar todo o texto para análise
-        full_text = f"{title} {description} {content}".lower()
-        
-        # Remover acentos para melhor matching
-        full_text = self._remove_accents(full_text)
-        
-        # Pontuação por categoria
-        category_scores = {}
-        
-        for category, keywords in self.keywords_mapping.items():
-            score = 0
-            for keyword in keywords:
-                keyword = self._remove_accents(keyword.lower())
+                if include_stats:
+                    stats = self._get_category_stats(cat_id)
+                    category.update(stats)
                 
-                # Contar ocorrências da palavra-chave
-                count = full_text.count(keyword)
-                
-                if count > 0:
-                    # Peso maior para título
-                    title_count = self._remove_accents(title.lower()).count(keyword)
-                    score += title_count * 3  # Título tem peso 3x
-                    
-                    # Peso normal para descrição e conteúdo
-                    score += count
+                categories.append(category)
             
-            if score > 0:
-                category_scores[category] = score
-        
-        # Retornar categoria com maior pontuação
-        if category_scores:
-            best_category = max(category_scores, key=category_scores.get)
-            return best_category
-        
-        return 'geral'  # Categoria padrão
-    
-    def auto_categorize_article(self, article_data: Dict) -> Tuple[Optional[int], str]:
-        """Categoriza automaticamente um artigo e retorna o ID da categoria"""
-        
-        try:
-            category_name = self.categorize_article(
-                article_data.get('title', ''),
-                article_data.get('description', ''),
-                article_data.get('content', '')
+            return format_success_response(
+                data={'categories': categories},
+                message=f"{len(categories)} categorias disponíveis"
             )
             
-            # Normalizar nome da categoria se vier em inglês
-            category_name = self.category_translations.get(category_name, category_name)
-            
-            # Buscar ou criar categoria
-            category, message = self.get_category_by_name(category_name)
-            
-            if category:
-                return category['id'], f"Categorizado como '{category['name']}'"
-            else:
-                # Tentar criar nova categoria
-                category_id, create_message = self.create_category(category_name)
-                if category_id:
-                    return category_id, f"Nova categoria '{category_name}' criada"
-                else:
-                    # Fallback para categoria 'geral'
-                    general_category, _ = self.get_category_by_name('geral')
-                    if general_category:
-                        return general_category['id'], "Categorizado como 'geral' (fallback)"
-                    else:
-                        return None, "Erro ao categorizar artigo"
-                        
         except Exception as e:
-            logger.error(f"Erro na categorização automática: {e}")
-            return None, f"Erro na categorização: {str(e)}"
+            raise create_database_error("buscar categorias", {'error': str(e)})
     
-    def filter_news_by_category(self, category_id: Optional[int] = None, 
-                               limit: int = 50, offset: int = 0) -> Tuple[List[Dict], str]:
-        """Filtra notícias por categoria"""
-        try:
-            if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
+    @api_error_handler
+    def classify_article(self, article_title: str, article_content: str = "") -> Dict:
+        """
+        Classifica um artigo em uma categoria baseado no conteúdo
+        
+        Args:
+            article_title: Título do artigo
+            article_content: Conteúdo do artigo (opcional)
             
-            if category_id:
-                # Filtrar por categoria específica
-                news_data = self.db.buscar("""
-                    SELECT n.id, n.title, n.description, n.url, n.source, 
-                           n.image_url, n.published_at, c.name as category_name
-                    FROM news n
-                    LEFT JOIN categories c ON n.category_id = c.id
-                    WHERE n.category_id = ?
-                    ORDER BY n.published_at DESC
-                    LIMIT ? OFFSET ?
-                """, (category_id, limit, offset))
-            else:
-                # Buscar todas as notícias
-                news_data = self.db.buscar("""
-                    SELECT n.id, n.title, n.description, n.url, n.source,
-                           n.image_url, n.published_at, c.name as category_name
-                    FROM news n
-                    LEFT JOIN categories c ON n.category_id = c.id
-                    ORDER BY n.published_at DESC
-                    LIMIT ? OFFSET ?
-                """, (limit, offset))
+        Returns:
+            Categoria sugerida com confidence score
+        """
+        if not article_title:
+            raise create_validation_error("Título do artigo é obrigatório")
+        
+        title = clean_text(article_title).lower()
+        content = clean_text(article_content).lower() if article_content else ""
+        
+        # Texto combinado para análise
+        full_text = f"{title} {content}"
+        normalized_text = normalize_string(full_text)
+        
+        # Calcular scores para cada categoria
+        category_scores = {}
+        
+        for cat_id, cat_data in self.default_categories.items():
+            score = 0
+            keywords = cat_data['keywords']
             
-            self.db.desconectar()
-            
-            news_list = []
-            for news in news_data:
-                (news_id, title, description, url, source, 
-                 image_url, published_at, category_name) = news
+            for keyword in keywords:
+                normalized_keyword = normalize_string(keyword)
                 
-                news_list.append({
-                    'id': news_id,
-                    'title': title,
-                    'description': description,
-                    'url': url,
-                    'source': source,
-                    'image_url': image_url,
-                    'published_at': published_at,
-                    'category': category_name or 'Geral'
-                })
+                # Score por título (peso maior)
+                if normalized_keyword in normalize_string(title):
+                    score += 3
+                
+                # Score por conteúdo
+                if normalized_keyword in normalized_text:
+                    score += 1
+                
+                # Bonus por match exato
+                if keyword == normalized_keyword and keyword in full_text:
+                    score += 2
             
-            return news_list, f"{len(news_list)} notícias encontradas"
+            if score > 0:
+                category_scores[cat_id] = score
+        
+        # Se não encontrou matches, usar 'geral'
+        if not category_scores:
+            category_scores['geral'] = 1
+        
+        # Categoria com maior score
+        best_category = max(category_scores.items(), key=lambda x: x[1])
+        cat_id, score = best_category
+        
+        # Calcular confidence (normalizado)
+        max_possible_score = len(self.default_categories[cat_id]['keywords']) * 3
+        confidence = min(score / max_possible_score, 1.0) if max_possible_score > 0 else 0.1
+        
+        result = {
+            'category': {
+                'id': cat_id,
+                'name': self.default_categories[cat_id]['name'],
+                'color': self.default_categories[cat_id]['color'],
+                'icon': self.default_categories[cat_id]['icon']
+            },
+            'confidence': round(confidence, 2),
+            'score': score,
+            'alternatives': []
+        }
+        
+        # Adicionar categorias alternativas
+        sorted_scores = sorted(category_scores.items(), key=lambda x: x[1], reverse=True)
+        for alt_cat_id, alt_score in sorted_scores[1:4]:  # Top 3 alternativas
+            if alt_score > 0:
+                alt_confidence = min(alt_score / max_possible_score, 1.0) if max_possible_score > 0 else 0.1
+                result['alternatives'].append({
+                    'id': alt_cat_id,
+                    'name': self.default_categories[alt_cat_id]['name'],
+                    'confidence': round(alt_confidence, 2),
+                    'score': alt_score
+                })
+        
+        return format_success_response(
+            data=result,
+            message=f"Artigo classificado como {result['category']['name']}"
+        )
+    
+    @api_error_handler
+    def filter_articles_by_category(self, articles: List[Dict], category_id: str) -> Dict:
+        """
+        Filtra lista de artigos por categoria
+        
+        Args:
+            articles: Lista de artigos
+            category_id: ID da categoria para filtrar
+            
+        Returns:
+            Artigos filtrados
+        """
+        category_id = sanitize_user_input(category_id, 50).lower()
+        
+        if category_id != 'todos' and category_id not in self.default_categories:
+            raise create_not_found_error("Categoria", category_id)
+        
+        if category_id == 'todos':
+            filtered_articles = articles
+        else:
+            filtered_articles = []
+            
+            for article in articles:
+                # Se artigo já tem categoria
+                if article.get('category') == category_id:
+                    filtered_articles.append(article)
+                # Senão, classificar automaticamente
+                else:
+                    classification = self.classify_article(
+                        article.get('title', ''), 
+                        article.get('description', '')
+                    )
+                    
+                    if classification['data']['category']['id'] == category_id:
+                        # Adicionar categoria ao artigo
+                        article['category'] = category_id
+                        article['category_confidence'] = classification['data']['confidence']
+                        filtered_articles.append(article)
+        
+        return format_success_response(
+            data={
+                'articles': filtered_articles,
+                'category': category_id,
+                'total_found': len(filtered_articles),
+                'total_analyzed': len(articles)
+            },
+            message=f"{len(filtered_articles)} artigos encontrados na categoria"
+        )
+    
+    def _get_category_stats(self, category_id: str) -> Dict:
+        """Obtém estatísticas de uma categoria"""
+        try:
+            # Simular estatísticas por enquanto
+            # Em produção, consultaria tabelas de artigos e visualizações
+            stats = {
+                'total_articles': 0,
+                'articles_today': 0,
+                'articles_week': 0,
+                'avg_views': 0,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            return stats
             
         except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao filtrar notícias: {e}")
-            return [], f"Erro ao filtrar notícias: {str(e)}"
+            logger.warning(f"Erro ao obter estatísticas da categoria {category_id}: {e}")
+            return {
+                'total_articles': 0,
+                'articles_today': 0,
+                'articles_week': 0,
+                'avg_views': 0,
+                'last_updated': datetime.now().isoformat()
+            }
     
-    def get_trending_categories(self, days: int = 7) -> Tuple[List[Dict], str]:
-        """Busca categorias com mais notícias nos últimos dias"""
-        try:
-            if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
+    def bulk_classify_articles(self, articles: List[Dict]) -> List[Dict]:
+        """
+        Classifica múltiplos artigos em lote
+        
+        Args:
+            articles: Lista de artigos sem categoria
             
-            trending_data = self.db.buscar("""
-                SELECT c.id, c.name, COUNT(n.id) as news_count
-                FROM categories c
-                LEFT JOIN news n ON c.id = n.category_id
-                WHERE n.published_at >= datetime('now', '-{} days')
-                GROUP BY c.id, c.name
+        Returns:
+            Artigos com categorias atribuídas
+        """
+        classified_articles = []
+        
+        for article in articles:
+            try:
+                if not article.get('category'):
+                    classification = self.classify_article(
+                        article.get('title', ''),
+                        article.get('description', '')
+                    )
+                    
+                    if classification['success']:
+                        article['category'] = classification['data']['category']['id']
+                        article['category_name'] = classification['data']['category']['name']
+                        article['category_confidence'] = classification['data']['confidence']
+                        article['category_color'] = classification['data']['category']['color']
+                        article['category_icon'] = classification['data']['category']['icon']
+                
+                classified_articles.append(article)
+                
+            except Exception as e:
+                logger.warning(f"Erro ao classificar artigo: {e}")
+                # Usar categoria padrão
+                article['category'] = 'geral'
+                article['category_name'] = 'Geral'
+                article['category_confidence'] = 0.1
+                classified_articles.append(article)
+        
+        return classified_articles
+
+# Instância global
+category_manager = CategoryManager()
+
+# Funções de conveniência
+def get_categories(include_stats: bool = False) -> Dict:
+    """Função de conveniência para obter categorias"""
+    return category_manager.get_all_categories(include_stats)
+
+def classify_news_article(title: str, content: str = "") -> Dict:
+    """Função de conveniência para classificar artigo"""
+    return category_manager.classify_article(title, content)
+
+def filter_by_category(articles: List[Dict], category: str) -> Dict:
+    """Função de conveniência para filtrar artigos"""
+    return category_manager.filter_articles_by_category(articles, category)
+
+def auto_categorize_articles(articles: List[Dict]) -> List[Dict]:
+    """Função de conveniência para categorização em lote"""
+    return category_manager.bulk_classify_articles(articles)
                 HAVING news_count > 0
                 ORDER BY news_count DESC
                 LIMIT 10

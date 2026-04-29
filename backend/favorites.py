@@ -1,8 +1,37 @@
+#!/usr/bin/env python3
+"""
+Favorites - Módulo para gestão de artigos favoritos dos utilizadores
+Integra com utils para validação, IA e tratamento de erros
+"""
+
+import sys
+import os
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from database.bd import Conexao
 import logging
 import hashlib
+
+# Adicionar caminho para utils
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Importar módulos utils
+from utils import (
+    api_error_handler,
+    create_validation_error,
+    create_database_error,
+    create_not_found_error,
+    create_duplicate_error,
+    format_success_response,
+    validate_article_data,
+    sanitize_user_input,
+    clean_text,
+    format_date_portuguese,
+    SecurityHelper,
+    DataHelper
+)
+
+# Importar conexão com banco
+from database.bd import Conexao
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +77,23 @@ class FavoritesManager:
                 self.db.desconectar()
             logger.error(f"Erro ao inicializar tabela de favoritos: {e}")
     
+    @api_error_handler
     def add_favorite_by_news_id(self, user_id: int, news_id: int, 
-                               notes: str = "", tags: List[str] = None) -> Tuple[bool, str]:
+                               notes: str = "", tags: List[str] = None) -> Dict:
         """Adiciona artigo aos favoritos usando ID da tabela news"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not news_id or news_id <= 0:
+            raise create_validation_error("ID de notícia inválido")
+        
+        # Limpar e validar entradas
+        clean_notes = sanitize_user_input(notes, 500) if notes else ""
+        clean_tags = [sanitize_user_input(tag, 50) for tag in (tags or [])][:10]  # Max 10 tags
+        
         try:
             if not self.db.conectar():
-                return False, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id, "news_id": news_id})
             
             # Verificar se artigo existe na tabela news
             news_data = self.db.buscar("""
@@ -65,7 +105,7 @@ class FavoritesManager:
             
             if not news_data:
                 self.db.desconectar()
-                return False, "Artigo não encontrado"
+                raise create_not_found_error("Artigo", news_id)
             
             title, description, source, image_url, category = news_data[0]
             
@@ -76,27 +116,49 @@ class FavoritesManager:
             
             if existing:
                 self.db.desconectar()
-                return False, "Artigo já está nos favoritos"
+                raise create_duplicate_error("Artigo já está nos favoritos")
             
-            # Preparar tags
-            tags_str = ','.join(tags) if tags else ''
+            # Preparar dados limpos
+            clean_title = clean_text(title)
+            clean_description = clean_text(description) if description else ""
+            clean_source = sanitize_user_input(source, 100) if source else ""
+            tags_str = ','.join(clean_tags) if clean_tags else ''
             
             # Adicionar aos favoritos
             self.db.executar("""
                 INSERT INTO favorites (user_id, news_id, title, description, source, 
                                      image_url, category, notes, tags)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, news_id, title, description, source, 
-                  image_url, category or 'geral', notes, tags_str))
+            """, (user_id, news_id, clean_title, clean_description, clean_source, 
+                  image_url, category or 'geral', clean_notes, tags_str))
+            
+            # Buscar ID do favorito criado
+            favorite_result = self.db.buscar("""
+                SELECT id FROM favorites WHERE user_id = ? AND news_id = ?
+                ORDER BY added_at DESC LIMIT 1
+            """, (user_id, news_id))
+            
+            favorite_id = favorite_result[0][0] if favorite_result else None
             
             self.db.desconectar()
-            return True, "Artigo adicionado aos favoritos"
+            
+            return format_success_response(
+                data={
+                    'favorite_id': favorite_id,
+                    'news_id': news_id,
+                    'title': clean_title,
+                    'category': category or 'geral',
+                    'notes': clean_notes,
+                    'tags': clean_tags,
+                    'added_at': datetime.now().isoformat()
+                },
+                message="Artigo adicionado aos favoritos"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao adicionar favorito: {e}")
-            return False, f"Erro ao adicionar favorito: {str(e)}"
+            raise create_database_error("adicionar favorito", {"user_id": user_id, "news_id": news_id, "error": str(e)})
     
     def add_favorite_by_url(self, user_id: int, url: str, title: str, 
                            description: str = "", source: str = "", 
@@ -200,13 +262,31 @@ class FavoritesManager:
             logger.error(f"Erro ao remover favorito por news_id: {e}")
             return False, f"Erro ao remover favorito: {str(e)}"
     
+    @api_error_handler
     def get_user_favorites(self, user_id: int, category: str = None, 
                           limit: int = 50, offset: int = 0,
-                          sort_by: str = 'added_at', order: str = 'DESC') -> Tuple[List[Dict], str]:
+                          sort_by: str = 'added_at', order: str = 'DESC') -> Dict:
         """Lista favoritos do utilizador"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if limit < 1 or limit > 100:
+            raise create_validation_error("Limite deve ser entre 1 e 100")
+        
+        if offset < 0:
+            raise create_validation_error("Offset deve ser >= 0")
+        
+        # Validar parâmetros de ordenação
+        valid_sort_fields = ['added_at', 'title', 'category', 'is_read']
+        if sort_by not in valid_sort_fields:
+            raise create_validation_error(f"Campo de ordenação inválido: {sort_by}")
+        
+        if order.upper() not in ['ASC', 'DESC']:
+            raise create_validation_error("Ordem deve ser ASC ou DESC")
+        
         try:
             if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id})
             
             # Construir query base
             query = """
@@ -219,21 +299,18 @@ class FavoritesManager:
             
             # Filtrar por categoria se especificado
             if category and category != 'all':
-                query += " AND LOWER(category) = LOWER(?)"
+                category = sanitize_user_input(category, 50)
+                query += " AND category = ?"
                 params.append(category)
             
-            # Ordenação
-            allowed_sorts = ['added_at', 'title', 'source', 'category']
-            allowed_orders = ['ASC', 'DESC']
+            # Query para contar total
+            count_query = query.replace("SELECT id, news_id, external_url, title, description, source, image_url, category, added_at, is_read, notes, tags", "SELECT COUNT(*)")
             
-            if sort_by not in allowed_sorts:
-                sort_by = 'added_at'
-            if order not in allowed_orders:
-                order = 'DESC'
+            total_result = self.db.buscar(count_query, params)
+            total_count = total_result[0][0] if total_result else 0
             
-            query += f" ORDER BY {sort_by} {order}"
-            
-            # Paginação
+            # Adicionar ordenação e paginação
+            query += f" ORDER BY {sort_by} {order.upper()}"
             query += " LIMIT ? OFFSET ?"
             params.extend([limit, offset])
             
@@ -241,54 +318,83 @@ class FavoritesManager:
             
             self.db.desconectar()
             
+            # Formatar dados
             favorites = []
-            for fav_data in favorites_data:
+            for favorite in favorites_data:
                 (fav_id, news_id, external_url, title, description, source,
-                 image_url, category, added_at, is_read, notes, tags_str) = fav_data
+                 image_url, cat, added_at, is_read, notes, tags) = favorite
                 
-                # Processar tags
-                tags = tags_str.split(',') if tags_str else []
-                tags = [tag.strip() for tag in tags if tag.strip()]
+                # Limpar e formatar dados
+                clean_title = clean_text(title) if title else ""
+                clean_description = clean_text(description) if description else ""
+                tags_list = [tag.strip() for tag in (tags or "").split(',') if tag.strip()]
                 
-                favorites.append({
+                favorite_item = {
                     'id': fav_id,
                     'news_id': news_id,
-                    'url': self._get_article_url(news_id, external_url),
                     'external_url': external_url,
-                    'title': title,
-                    'description': description,
+                    'title': clean_title,
+                    'description': clean_description,
                     'source': source,
                     'image_url': image_url,
-                    'category': category,
+                    'category': cat,
                     'added_at': added_at,
+                    'added_at_formatted': format_date_portuguese(added_at) if added_at else None,
                     'is_read': bool(is_read),
-                    'notes': notes or '',
-                    'tags': tags,
-                    'type': 'internal' if news_id else 'external'
-                })
+                    'notes': notes,
+                    'tags': tags_list,
+                    'is_external': bool(external_url and not news_id)
+                }
+                
+                favorites.append(favorite_item)
             
-            return favorites, f"{len(favorites)} favoritos encontrados"
+            return format_success_response(
+                data={
+                    'favorites': favorites,
+                    'pagination': {
+                        'total': total_count,
+                        'limit': limit,
+                        'offset': offset,
+                        'has_more': offset + len(favorites) < total_count,
+                        'next_offset': offset + limit if offset + len(favorites) < total_count else None
+                    },
+                    'filter': {
+                        'category': category,
+                        'sort_by': sort_by,
+                        'order': order
+                    }
+                },
+                message=f"{len(favorites)} favoritos encontrados"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao listar favoritos: {e}")
-            return [], f"Erro ao listar favoritos: {str(e)}"
+            raise create_database_error("buscar favoritos", {"user_id": user_id, "error": str(e)})
     
-    def mark_as_read(self, user_id: int, favorite_id: int, is_read: bool = True) -> Tuple[bool, str]:
-        """Marca/desmarca favorito como lido"""
+    @api_error_handler
+    def update_read_status(self, user_id: int, favorite_id: int, is_read: bool) -> Dict:
+        """Atualiza o status de leitura de um favorito"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not favorite_id or favorite_id <= 0:
+            raise create_validation_error("ID de favorito inválido")
+        
         try:
             if not self.db.conectar():
-                return False, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id, "favorite_id": favorite_id})
             
             # Verificar se favorito existe e pertence ao usuário
             existing = self.db.buscar("""
-                SELECT id FROM favorites WHERE id = ? AND user_id = ?
+                SELECT id, title FROM favorites WHERE id = ? AND user_id = ?
             """, (favorite_id, user_id))
             
             if not existing:
                 self.db.desconectar()
-                return False, "Favorito não encontrado"
+                raise create_not_found_error("Favorito", favorite_id)
+            
+            title = existing[0][1]
             
             # Atualizar status de leitura
             self.db.executar("""
@@ -296,329 +402,309 @@ class FavoritesManager:
             """, (is_read, favorite_id, user_id))
             
             self.db.desconectar()
-            status = "lido" if is_read else "não lido"
-            return True, f"Favorito marcado como {status}"
+            
+            status_text = "lido" if is_read else "não lido"
+            return format_success_response(
+                data={
+                    'favorite_id': favorite_id,
+                    'is_read': is_read,
+                    'title': title
+                },
+                message=f"Artigo '{title}' marcado como {status_text}"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao marcar como lido: {e}")
-            return False, f"Erro ao atualizar status: {str(e)}"
+            raise create_database_error("atualizar status", {"user_id": user_id, "favorite_id": favorite_id, "error": str(e)})
     
-    def update_favorite_notes(self, user_id: int, favorite_id: int, notes: str) -> Tuple[bool, str]:
-        """Atualiza notas do favorito"""
+    @api_error_handler
+    def update_notes(self, user_id: int, favorite_id: int, notes: str) -> Dict:
+        """Atualiza as notas de um favorito"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not favorite_id or favorite_id <= 0:
+            raise create_validation_error("ID de favorito inválido")
+        
+        # Limpar e validar notas
+        clean_notes = sanitize_user_input(notes, 1000) if notes else ""
+        
         try:
             if not self.db.conectar():
-                return False, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id, "favorite_id": favorite_id})
             
             # Verificar se favorito existe e pertence ao usuário
             existing = self.db.buscar("""
-                SELECT id FROM favorites WHERE id = ? AND user_id = ?
+                SELECT id, title FROM favorites WHERE id = ? AND user_id = ?
             """, (favorite_id, user_id))
             
             if not existing:
                 self.db.desconectar()
-                return False, "Favorito não encontrado"
+                raise create_not_found_error("Favorito", favorite_id)
+            
+            title = existing[0][1]
             
             # Atualizar notas
             self.db.executar("""
                 UPDATE favorites SET notes = ? WHERE id = ? AND user_id = ?
-            """, (notes, favorite_id, user_id))
+            """, (clean_notes, favorite_id, user_id))
             
             self.db.desconectar()
-            return True, "Notas atualizadas com sucesso"
+            
+            return format_success_response(
+                data={
+                    'favorite_id': favorite_id,
+                    'notes': clean_notes,
+                    'title': title
+                },
+                message=f"Notas do artigo '{title}' atualizadas"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao atualizar notas: {e}")
-            return False, f"Erro ao atualizar notas: {str(e)}"
+            raise create_database_error("atualizar notas", {"user_id": user_id, "favorite_id": favorite_id, "error": str(e)})
     
-    def update_favorite_tags(self, user_id: int, favorite_id: int, tags: List[str]) -> Tuple[bool, str]:
-        """Atualiza tags do favorito"""
+    @api_error_handler
+    def get_user_favorites_stats(self, user_id: int) -> Dict:
+        """Obtém estatísticas dos favoritos do usuário"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
         try:
             if not self.db.conectar():
-                return False, "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id})
             
-            # Verificar se favorito existe e pertence ao usuário
-            existing = self.db.buscar("""
-                SELECT id FROM favorites WHERE id = ? AND user_id = ?
-            """, (favorite_id, user_id))
+            # Contar total de favoritos
+            total_result = self.db.buscar("""
+                SELECT COUNT(*) FROM favorites WHERE user_id = ?
+            """, (user_id,))
+            total_favorites = total_result[0][0] if total_result else 0
             
-            if not existing:
-                self.db.desconectar()
-                return False, "Favorito não encontrado"
+            # Contar favoritos não lidos
+            unread_result = self.db.buscar("""
+                SELECT COUNT(*) FROM favorites WHERE user_id = ? AND is_read = FALSE
+            """, (user_id,))
+            unread_favorites = unread_result[0][0] if unread_result else 0
             
-            # Processar tags (remover vazias e duplicatas)
-            clean_tags = list(set([tag.strip() for tag in tags if tag.strip()]))
-            tags_str = ','.join(clean_tags)
+            # Contar favoritos lidos
+            read_favorites = total_favorites - unread_favorites
             
-            # Atualizar tags
-            self.db.executar("""
-                UPDATE favorites SET tags = ? WHERE id = ? AND user_id = ?
-            """, (tags_str, favorite_id, user_id))
+            # Calcular porcentagem de lidos
+            read_percentage = (read_favorites / total_favorites * 100) if total_favorites > 0 else 0
             
-            self.db.desconectar()
-            return True, f"Tags atualizadas: {clean_tags}"
+            # Estatísticas por categoria
+            categories_result = self.db.buscar("""
+                SELECT category, COUNT(*) as count
+                FROM favorites 
+                WHERE user_id = ?
+                GROUP BY category
+                ORDER BY count DESC
+            """, (user_id,))
             
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao atualizar tags: {e}")
-            return False, f"Erro ao atualizar tags: {str(e)}"
-    
-    def search_favorites(self, user_id: int, search_term: str, 
-                        search_in: List[str] = None) -> Tuple[List[Dict], str]:
-        """Pesquisa nos favoritos do utilizador"""
-        try:
-            if not search_term or len(search_term.strip()) < 2:
-                return [], "Termo de pesquisa deve ter pelo menos 2 caracteres"
-            
-            if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
-            
-            # Campos de pesquisa padrão
-            if not search_in:
-                search_in = ['title', 'description', 'notes', 'tags']
-            
-            search_term = f"%{search_term.strip()}%"
-            
-            # Construir condições de pesquisa
-            search_conditions = []
-            params = [user_id]
-            
-            if 'title' in search_in:
-                search_conditions.append("LOWER(title) LIKE LOWER(?)")
-                params.append(search_term)
-            
-            if 'description' in search_in:
-                search_conditions.append("LOWER(description) LIKE LOWER(?)")
-                params.append(search_term)
-            
-            if 'notes' in search_in:
-                search_conditions.append("LOWER(notes) LIKE LOWER(?)")
-                params.append(search_term)
-            
-            if 'tags' in search_in:
-                search_conditions.append("LOWER(tags) LIKE LOWER(?)")
-                params.append(search_term)
-            
-            if not search_conditions:
-                return [], "Nenhum campo de pesquisa válido especificado"
-            
-            query = f"""
-                SELECT id, news_id, external_url, title, description, source, 
-                       image_url, category, added_at, is_read, notes, tags
-                FROM favorites
-                WHERE user_id = ? AND ({' OR '.join(search_conditions)})
-                ORDER BY added_at DESC
-                LIMIT 100
-            """
-            
-            results = self.db.buscar(query, params)
-            
-            self.db.desconectar()
-            
-            favorites = []
-            for result in results:
-                (fav_id, news_id, external_url, title, description, source,
-                 image_url, category, added_at, is_read, notes, tags_str) = result
-                
-                tags = tags_str.split(',') if tags_str else []
-                tags = [tag.strip() for tag in tags if tag.strip()]
-                
-                favorites.append({
-                    'id': fav_id,
-                    'news_id': news_id,
-                    'url': self._get_article_url(news_id, external_url),
-                    'external_url': external_url,
-                    'title': title,
-                    'description': description,
-                    'source': source,
-                    'image_url': image_url,
-                    'category': category,
-                    'added_at': added_at,
-                    'is_read': bool(is_read),
-                    'notes': notes or '',
-                    'tags': tags,
-                    'type': 'internal' if news_id else 'external'
+            categories_stats = []
+            for cat_row in categories_result:
+                categories_stats.append({
+                    'category': cat_row[0],
+                    'count': cat_row[1]
                 })
             
-            return favorites, f"{len(favorites)} favoritos encontrados"
-            
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro na pesquisa de favoritos: {e}")
-            return [], f"Erro na pesquisa: {str(e)}"
-    
-    def get_favorites_by_category(self, user_id: int) -> Tuple[Dict[str, int], str]:
-        """Obtém contagem de favoritos por categoria"""
-        try:
-            if not self.db.conectar():
-                return {}, "Erro de conexão com a base de dados"
-            
-            category_counts = self.db.buscar("""
-                SELECT category, COUNT(*) as count
-                FROM favorites
-                WHERE user_id = ?
-                GROUP BY category
-                ORDER BY count DESC
-            """, (user_id,))
-            
-            self.db.desconectar()
-            
-            categories = {}
-            for cat_data in category_counts:
-                category, count = cat_data
-                categories[category] = count
-            
-            return categories, f"{len(categories)} categorias com favoritos"
-            
-        except Exception as e:
-            if self.db.conexao:
-                self.db.desconectar()
-            logger.error(f"Erro ao obter categorias de favoritos: {e}")
-            return {}, f"Erro ao obter categorias: {str(e)}"
-    
-    def get_favorites_statistics(self, user_id: int) -> Tuple[Dict, str]:
-        """Obtém estatísticas dos favoritos do utilizador"""
-        try:
-            if not self.db.conectar():
-                return {}, "Erro de conexão com a base de dados"
-            
-            # Estatísticas básicas
-            total = self.db.buscar("SELECT COUNT(*) FROM favorites WHERE user_id = ?", (user_id,))[0][0]
-            read = self.db.buscar("SELECT COUNT(*) FROM favorites WHERE user_id = ? AND is_read = 1", (user_id,))[0][0]
-            
-            # Favoritos recentes (última semana)
-            recent = self.db.buscar("""
+            # Favoritos recentes (últimos 7 dias)
+            recent_result = self.db.buscar("""
                 SELECT COUNT(*) FROM favorites 
                 WHERE user_id = ? AND added_at >= datetime('now', '-7 days')
-            """, (user_id,))[0][0]
-            
-            # Categoria mais favoritada
-            top_category = self.db.buscar("""
-                SELECT category, COUNT(*) as count
-                FROM favorites
-                WHERE user_id = ?
-                GROUP BY category
-                ORDER BY count DESC
-                LIMIT 1
             """, (user_id,))
-            
-            # Fonte mais favoritada
-            top_source = self.db.buscar("""
-                SELECT source, COUNT(*) as count
-                FROM favorites
-                WHERE user_id = ? AND source IS NOT NULL AND source != ''
-                GROUP BY source
-                ORDER BY count DESC
-                LIMIT 1
-            """, (user_id,))
+            recent_favorites = recent_result[0][0] if recent_result else 0
             
             self.db.desconectar()
             
-            stats = {
-                'total_favorites': total,
-                'read_favorites': read,
-                'unread_favorites': total - read,
-                'read_percentage': (read / total * 100) if total > 0 else 0,
-                'recent_additions': recent,
-                'top_category': top_category[0][0] if top_category else 'N/A',
-                'top_category_count': top_category[0][1] if top_category else 0,
-                'top_source': top_source[0][0] if top_source else 'N/A',
-                'top_source_count': top_source[0][1] if top_source else 0
-            }
-            
-            return stats, "Estatísticas calculadas com sucesso"
+            return format_success_response(
+                data={
+                    'total_favorites': total_favorites,
+                    'read_favorites': read_favorites,
+                    'unread_favorites': unread_favorites,
+                    'read_percentage': round(read_percentage, 1),
+                    'recent_favorites': recent_favorites,
+                    'categories': categories_stats
+                },
+                message="Estatísticas de favoritos obtidas"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao calcular estatísticas: {e}")
-            return {}, f"Erro ao calcular estatísticas: {str(e)}"
+            raise create_database_error("buscar estatísticas", {"user_id": user_id, "error": str(e)})
     
-    def get_all_tags(self, user_id: int) -> Tuple[List[str], str]:
-        """Obtém todas as tags usadas pelo utilizador"""
+    @api_error_handler
+    def get_user_categories(self, user_id: int) -> Dict:
+        """Obtém lista de categorias dos favoritos do usuário"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
         try:
             if not self.db.conectar():
-                return [], "Erro de conexão com a base de dados"
+                raise create_database_error("conectar", {"user_id": user_id})
             
-            tags_data = self.db.buscar("""
-                SELECT tags FROM favorites 
-                WHERE user_id = ? AND tags IS NOT NULL AND tags != ''
+            # Buscar categorias únicas dos favoritos do usuário
+            categories_result = self.db.buscar("""
+                SELECT DISTINCT category
+                FROM favorites 
+                WHERE user_id = ? AND category IS NOT NULL
+                ORDER BY category
             """, (user_id,))
             
             self.db.desconectar()
             
-            all_tags = set()
-            for tag_row in tags_data:
-                tags_str = tag_row[0]
-                if tags_str:
-                    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
-                    all_tags.update(tags)
+            categories = [row[0] for row in categories_result if row[0]]
             
-            sorted_tags = sorted(list(all_tags))
-            return sorted_tags, f"{len(sorted_tags)} tags encontradas"
+            return format_success_response(
+                data=categories,
+                message=f"{len(categories)} categorias encontradas"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao obter tags: {e}")
-            return [], f"Erro ao obter tags: {str(e)}"
+            raise create_database_error("buscar categorias", {"user_id": user_id, "error": str(e)})
     
-    def is_favorite(self, user_id: int, news_id: int = None, url: str = None) -> bool:
-        """Verifica se artigo está nos favoritos"""
+    @api_error_handler
+    def is_favorite(self, user_id: int, news_id: int) -> Dict:
+        """Verifica se um artigo está nos favoritos do usuário"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not news_id or news_id <= 0:
+            raise create_validation_error("ID de notícia inválido")
+        
         try:
             if not self.db.conectar():
-                return False
+                raise create_database_error("conectar", {"user_id": user_id, "news_id": news_id})
             
-            if news_id:
-                existing = self.db.buscar("""
-                    SELECT id FROM favorites WHERE user_id = ? AND news_id = ?
-                """, (user_id, news_id))
-            elif url:
+            # Verificar se artigo está nos favoritos
+            favorite_result = self.db.buscar("""
+                SELECT id, is_read, notes, added_at
+                FROM favorites 
+                WHERE user_id = ? AND news_id = ?
+            """, (user_id, news_id))
+            
+            self.db.desconectar()
+            
+            if favorite_result:
+                favorite_id, is_read, notes, added_at = favorite_result[0]
+                return format_success_response(
+                    data={
+                        'is_favorite': True,
+                        'favorite_id': favorite_id,
+                        'is_read': bool(is_read),
+                        'notes': notes,
+                        'added_at': added_at
+                    },
+                    message="Artigo está nos favoritos"
+                )
+            else:
+                return format_success_response(
+                    data={'is_favorite': False},
+                    message="Artigo não está nos favoritos"
+                )
+            
+        except Exception as e:
+            if self.db.conexao:
+                self.db.desconectar()
+            raise create_database_error("verificar favorito", {"user_id": user_id, "news_id": news_id, "error": str(e)})
+    
+    @api_error_handler
+    def add_favorite(self, user_id: int, title: str, description: str = "", 
+                    external_url: str = "", source: str = "", category: str = "geral",
+                    notes: str = "", tags: List[str] = None) -> Dict:
+        """Adiciona artigo externo aos favoritos"""
+        if not user_id or user_id <= 0:
+            raise create_validation_error("ID de usuário inválido")
+        
+        if not title:
+            raise create_validation_error("Título é obrigatório")
+        
+        # Limpar e validar entradas
+        clean_title = sanitize_user_input(title, 200)
+        clean_description = sanitize_user_input(description, 500) if description else ""
+        clean_url = sanitize_user_input(external_url, 500) if external_url else ""
+        clean_source = sanitize_user_input(source, 100) if source else ""
+        clean_category = sanitize_user_input(category, 50) if category else "geral"
+        clean_notes = sanitize_user_input(notes, 1000) if notes else ""
+        clean_tags = [sanitize_user_input(tag, 50) for tag in (tags or [])][:10]  # Max 10 tags
+        
+        try:
+            if not self.db.conectar():
+                raise create_database_error("conectar", {"user_id": user_id})
+            
+            # Verificar se URL já está nos favoritos (se fornecida)
+            if clean_url:
                 existing = self.db.buscar("""
                     SELECT id FROM favorites WHERE user_id = ? AND external_url = ?
-                """, (user_id, url))
-            else:
-                return False
+                """, (user_id, clean_url))
+                
+                if existing:
+                    self.db.desconectar()
+                    raise create_duplicate_error("Artigo já está nos favoritos")
+            
+            # Preparar tags
+            tags_str = ','.join(clean_tags) if clean_tags else ''
+            
+            # Adicionar aos favoritos
+            self.db.executar("""
+                INSERT INTO favorites (user_id, external_url, title, description, 
+                                     source, category, notes, tags)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, clean_url, clean_title, clean_description, 
+                  clean_source, clean_category, clean_notes, tags_str))
+            
+            # Buscar ID do favorito criado
+            favorite_result = self.db.buscar("""
+                SELECT id FROM favorites WHERE user_id = ? AND title = ? 
+                ORDER BY added_at DESC LIMIT 1
+            """, (user_id, clean_title))
+            
+            favorite_id = favorite_result[0][0] if favorite_result else None
             
             self.db.desconectar()
-            return len(existing) > 0
+            
+            return format_success_response(
+                data={
+                    'favorite_id': favorite_id,
+                    'title': clean_title,
+                    'external_url': clean_url,
+                    'category': clean_category,
+                    'notes': clean_notes,
+                    'tags': clean_tags,
+                    'added_at': datetime.now().isoformat()
+                },
+                message="Artigo externo adicionado aos favoritos"
+            )
             
         except Exception as e:
             if self.db.conexao:
                 self.db.desconectar()
-            logger.error(f"Erro ao verificar favorito: {e}")
-            return False
-    
-    def _get_article_url(self, news_id: Optional[int], external_url: Optional[str]) -> Optional[str]:
-        """Obtém URL do artigo (interno ou externo)"""
-        if external_url:
-            return external_url
-        elif news_id:
-            # Para artigos internos, você poderia construir URL baseada no ID
-            return f"/article/{news_id}"
-        return None
-    
-    def export_favorites(self, user_id: int) -> Tuple[Optional[Dict], str]:
-        """Exporta favoritos do utilizador"""
-        try:
-            favorites, message = self.get_user_favorites(user_id, limit=1000)
-            if not favorites:
-                return None, message
-            
-            export_data = {
-                'export_date': datetime.now().isoformat(),
-                'user_id': user_id,
-                'total_favorites': len(favorites),
-                'favorites': favorites
-            }
-            
-            return export_data, f"Exportação concluída: {len(favorites)} favoritos"
-            
-        except Exception as e:
-            logger.error(f"Erro ao exportar favoritos: {e}")
-            return None, f"Erro ao exportar: {str(e)}"
+            raise create_database_error("adicionar favorito externo", {"user_id": user_id, "error": str(e)})
+
+# Instância global
+favorites_manager = FavoritesManager()
+
+# Funções de conveniência para API
+def add_news_to_favorites(user_id: int, news_id: int, notes: str = "", tags: List[str] = None) -> Dict:
+    """Função de conveniência para adicionar notícia aos favoritos"""
+    return favorites_manager.add_favorite_by_news_id(user_id, news_id, notes, tags)
+
+def get_favorites_list(user_id: int, category: str = None, limit: int = 50) -> Dict:
+    """Função de conveniência para listar favoritos"""
+    return favorites_manager.get_user_favorites(user_id, category, limit)
+
+def remove_from_favorites(user_id: int, favorite_id: int) -> Dict:
+    """Função de conveniência para remover favorito"""
+    result = favorites_manager.remove_favorite(user_id, favorite_id)
+    if result[0]:  # success
+        return format_success_response(
+            data={'removed': True, 'favorite_id': favorite_id},
+            message=result[1]
+        )
+    else:
+        raise create_database_error("remover favorito", {"error": result[1]})
