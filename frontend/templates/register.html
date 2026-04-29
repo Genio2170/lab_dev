@@ -79,13 +79,25 @@
 <div class="right-panel">
 
     <!-- ========== FORMULÁRIO REGISTO ========== -->
-    <form method="post" action=""  class="form-register"style="display:block;"  id="formRegister">
+    <form method="post" action="{{ url_for('register') }}"  class="form-register"style="display:block;"  id="formRegister">
 
         <div class="form-header">
             <h2 class="form-title">Crie a sua conta ✨</h2>
-            <p class="form-subtitle">Já tem conta? <a href="#" onclick="switchTab('login')">Entre aqui</a></p>
+            <p class="form-subtitle">Já tem conta? <a href="{{ url_for('login') }}">Entre aqui</a></p>
         </div>
 
+        <!-- Alertas Flask -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert {{ 'error' if category == 'error' else 'success' }}" style="display: flex;">
+                {{ '⚠' if category == 'error' else '✓' }} {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Alerta JavaScript -->
         <div class="alert success" id="registerAlert" style="display:none">
             ✓ Conta criada com sucesso! A redirecionar...
         </div>
@@ -100,21 +112,12 @@
             <div class="divider-line"></div>
         </div>
 
-        <!-- Nome + Apelido -->
-        <div class="form-row-2">
-            <div class="form-group">
-                <label class="form-label">Nome</label>
-                <div class="form-input-wrap">
-                    <span class="form-input-icon">👤</span>
-                    <input class="form-input" name="first_name" type="text" placeholder="Manuel" />
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Apelido</label>
-                <div class="form-input-wrap">
-                    <span class="form-input-icon">👤</span>
-                    <input class="form-input" name="last_name"  type="text" placeholder="Kiala" />
-                </div>
+        <!-- Nome Completo -->
+        <div class="form-group">
+            <label class="form-label">Nome Completo</label>
+            <div class="form-input-wrap">
+                <span class="form-input-icon">👤</span>
+                <input class="form-input" name="full_name" type="text" placeholder="Manuel Kiala" required />
             </div>
         </div>
 
@@ -123,7 +126,7 @@
             <label class="form-label">Email</label>
             <div class="form-input-wrap">
                 <span class="form-input-icon">✉</span>
-                <input class="form-input" type="email" placeholder="o-seu@email.com" />
+                <input class="form-input" name="email" type="email" placeholder="o-seu@email.com" required />
             </div>
         </div>
 
@@ -132,9 +135,9 @@
             <label class="form-label">Palavra-passe</label>
             <div class="form-input-wrap">
                 <span class="form-input-icon">🔒</span>
-                <input class="form-input" type="password" name="password_hash"  id="regPass" placeholder="Mínimo 8 caracteres"
-                    oninput="checkStrength(this.value)" />
-                <button class="toggle-pass" onclick="togglePass('regPass', this)">👁</button>
+                <input class="form-input" type="password" name="password" id="regPass" placeholder="Mínimo 8 caracteres"
+                    oninput="checkStrength(this.value)" required />
+                <button type="button" class="toggle-pass" onclick="togglePass('regPass', this)">👁</button>
             </div>
             <div class="password-strength">
                 <div class="ps-bar" id="bar1"></div>
@@ -144,17 +147,25 @@
             </div>
             <div class="ps-label" id="psLabel"></div>
         </div>
-
+        <!-- Confirmar Senha -->
+        <div class="form-group">
+            <label class="form-label">Confirme a Palavra-passe</label>
+            <div class="form-input-wrap">
+                <span class="form-input-icon">🔒</span>
+                <input class="form-input" type="password" name="confirm_password" id="regPassConfirm" placeholder="Confirme a palavra-passe" required />
+                <button type="button" class="toggle-pass" onclick="togglePass('regPassConfirm', this)">👁</button>
+            </div>
+        </div>
         <!-- Checkbox termos -->
         <div class="form-group" style="margin-bottom:1.4rem">
             <label class="checkbox-wrap">
-                <input type="checkbox" id="termsCheck" />
+                <input type="checkbox" name="terms_accepted" id="termsCheck" required />
                 <span class="checkbox-label">Aceito os <a href="#" style="color:var(--accent)">Termos</a> e a <a
                         href="#" style="color:var(--accent)">Privacidade</a></span>
             </label>
         </div>
 
-        <button class="btn-primary">
+        <button type="submit" class="btn-primary">
             Criar conta grátis →
         </button>
 
