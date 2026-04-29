@@ -20,7 +20,6 @@ from utils import (
     create_database_error,
     create_not_found_error,
     format_success_response,
-    validate_user_preferences,
     sanitize_user_input,
     clean_text,
     analyze_user_patterns,
@@ -118,7 +117,7 @@ class PreferencesManager:
             
             preferred_categories = [
                 {'id': cat[0], 'name': cat[1]} 
-                for cat in categories_data
+                for cat in (categories_data or [])
             ]
             
             # Estrutura padrão de preferências
@@ -172,7 +171,7 @@ class PreferencesManager:
             
             if not category_exists:
                 self.db.desconectar()
-                raise create_not_found_error("Categoria", category_id)
+                raise create_not_found_error("Categoria", str(category_id))
             
             # Verificar se preferência já existe
             existing = self.db.buscar("""
@@ -245,7 +244,7 @@ class PreferencesManager:
                     SELECT id FROM categories WHERE id IN ({placeholders})
                 """, category_ids)
                 
-                valid_ids = [cat[0] for cat in valid_categories]
+                valid_ids = [cat[0] for cat in (valid_categories or [])]
                 invalid_ids = set(category_ids) - set(valid_ids)
                 
                 if invalid_ids:
@@ -300,6 +299,7 @@ class PreferencesManager:
             """, (user_id, limit))
             
             # Se não há artigos suficientes das categorias preferidas, buscar mais gerais
+            recommended = recommended or []
             if len(recommended) < limit:
                 additional = self.db.buscar("""
                     SELECT n.id, n.title, n.description, n.url, n.source,
@@ -320,12 +320,14 @@ class PreferencesManager:
                     LIMIT ?
                 """, (user_id, limit - len(recommended)))
                 
-                recommended.extend(additional)
+                if additional:
+                    recommended.extend(additional)
             
             self.db.desconectar()
             
             articles = []
-            for i, news in enumerate(recommended):
+            additional_count = len(additional) if 'additional' in locals() and additional else 0
+            for i, news in enumerate(recommended or []):
                 (news_id, title, description, url, source,
                  image_url, published_at, category_name) = news
                 
@@ -342,7 +344,7 @@ class PreferencesManager:
                     'image_url': image_url,
                     'published_at': published_at,
                     'category': category_name,
-                    'recommendation_reason': 'Categoria preferida' if i < len(recommended) - len(additional) else 'Sugestão geral'
+                    'recommendation_reason': 'Categoria preferida' if i < len(recommended) - additional_count else 'Sugestão geral'
                 })
             
             return format_success_response(
@@ -350,8 +352,8 @@ class PreferencesManager:
                     'articles': articles,
                     'total': len(articles),
                     'limit': limit,
-                    'from_preferences': len(recommended) - len(additional) if 'additional' in locals() else len(recommended),
-                    'general_suggestions': len(additional) if 'additional' in locals() else 0
+                    'from_preferences': len(recommended) - additional_count,
+                    'general_suggestions': additional_count
                 },
                 message=f"{len(articles)} artigos recomendados"
             )
@@ -465,7 +467,7 @@ class PreferencesManager:
             self.db.desconectar()
             
             suggestions = []
-            for cat in available_categories:
+            for cat in (available_categories or []):
                 cat_id, name, news_count = cat
                 suggestions.append({
                     'id': cat_id,
@@ -542,7 +544,7 @@ class PreferencesManager:
             """, (user_id,))
             
             self.db.desconectar()
-            return len(user_exists) > 0
+            return bool(user_exists) and len(user_exists) > 0
             
         except Exception as e:
             if self.db.conexao:

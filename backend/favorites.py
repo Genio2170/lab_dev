@@ -20,15 +20,37 @@ from utils import (
     create_validation_error,
     create_database_error,
     create_not_found_error,
-    create_duplicate_error,
     format_success_response,
     validate_article_data,
     sanitize_user_input,
     clean_text,
-    format_date_portuguese,
     SecurityHelper,
     DataHelper
 )
+
+# Função auxiliar para format_date_portuguese se não estiver disponível
+def format_date_portuguese(date_str):
+    """Formata data em português"""
+    try:
+        if isinstance(date_str, str):
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        else:
+            dt = date_str
+        return dt.strftime('%d/%m/%Y às %H:%M')
+    except Exception:
+        return str(date_str)
+
+# Função auxiliar para create_duplicate_error
+class DuplicateError(Exception):
+    """Exceção para erros de duplicação"""
+    def __init__(self, message: str, data=None):
+        super().__init__(message)
+        self.message = message
+        self.data = data
+
+def create_duplicate_error(message: str, data=None):
+    """Cria erro de duplicação"""
+    raise DuplicateError(message, data)
 
 # Importar conexão com banco
 from database.bd import Conexao
@@ -79,7 +101,7 @@ class FavoritesManager:
     
     @api_error_handler
     def add_favorite_by_news_id(self, user_id: int, news_id: int, 
-                               notes: str = "", tags: List[str] = None) -> Dict:
+                               notes: str = "", tags: Optional[List[str]] = None) -> Dict:
         """Adiciona artigo aos favoritos usando ID da tabela news"""
         if not user_id or user_id <= 0:
             raise create_validation_error("ID de usuário inválido")
@@ -105,7 +127,7 @@ class FavoritesManager:
             
             if not news_data:
                 self.db.desconectar()
-                raise create_not_found_error("Artigo", news_id)
+                raise create_not_found_error("Artigo", str(news_id))
             
             title, description, source, image_url, category = news_data[0]
             
@@ -163,7 +185,7 @@ class FavoritesManager:
     def add_favorite_by_url(self, user_id: int, url: str, title: str, 
                            description: str = "", source: str = "", 
                            image_url: str = "", category: str = "geral",
-                           notes: str = "", tags: List[str] = None) -> Tuple[bool, str]:
+                           notes: str = "", tags: Optional[List[str]] = None) -> Tuple[bool, str]:
         """Adiciona artigo externo aos favoritos usando URL"""
         try:
             if not url or not title:
@@ -263,7 +285,7 @@ class FavoritesManager:
             return False, f"Erro ao remover favorito: {str(e)}"
     
     @api_error_handler
-    def get_user_favorites(self, user_id: int, category: str = None, 
+    def get_user_favorites(self, user_id: int, category: Optional[str] = None, 
                           limit: int = 50, offset: int = 0,
                           sort_by: str = 'added_at', order: str = 'DESC') -> Dict:
         """Lista favoritos do utilizador"""
@@ -295,7 +317,7 @@ class FavoritesManager:
                 FROM favorites
                 WHERE user_id = ?
             """
-            params = [user_id]
+            params: List = [user_id]
             
             # Filtrar por categoria se especificado
             if category and category != 'all':
@@ -320,7 +342,7 @@ class FavoritesManager:
             
             # Formatar dados
             favorites = []
-            for favorite in favorites_data:
+            for favorite in (favorites_data or []):
                 (fav_id, news_id, external_url, title, description, source,
                  image_url, cat, added_at, is_read, notes, tags) = favorite
                 
@@ -392,7 +414,7 @@ class FavoritesManager:
             
             if not existing:
                 self.db.desconectar()
-                raise create_not_found_error("Favorito", favorite_id)
+                raise create_not_found_error("Favorito", str(favorite_id))
             
             title = existing[0][1]
             
@@ -441,7 +463,7 @@ class FavoritesManager:
             
             if not existing:
                 self.db.desconectar()
-                raise create_not_found_error("Favorito", favorite_id)
+                raise create_not_found_error("Favorito", str(favorite_id))
             
             title = existing[0][1]
             
@@ -504,7 +526,7 @@ class FavoritesManager:
             """, (user_id,))
             
             categories_stats = []
-            for cat_row in categories_result:
+            for cat_row in (categories_result or []):
                 categories_stats.append({
                     'category': cat_row[0],
                     'count': cat_row[1]
@@ -556,7 +578,7 @@ class FavoritesManager:
             
             self.db.desconectar()
             
-            categories = [row[0] for row in categories_result if row[0]]
+            categories = [row[0] for row in (categories_result or []) if row[0]]
             
             return format_success_response(
                 data=categories,
@@ -616,7 +638,7 @@ class FavoritesManager:
     @api_error_handler
     def add_favorite(self, user_id: int, title: str, description: str = "", 
                     external_url: str = "", source: str = "", category: str = "geral",
-                    notes: str = "", tags: List[str] = None) -> Dict:
+                    notes: str = "", tags: Optional[List[str]] = None) -> Dict:
         """Adiciona artigo externo aos favoritos"""
         if not user_id or user_id <= 0:
             raise create_validation_error("ID de usuário inválido")
@@ -690,11 +712,11 @@ class FavoritesManager:
 favorites_manager = FavoritesManager()
 
 # Funções de conveniência para API
-def add_news_to_favorites(user_id: int, news_id: int, notes: str = "", tags: List[str] = None) -> Dict:
+def add_news_to_favorites(user_id: int, news_id: int, notes: str = "", tags: Optional[List[str]] = None) -> Dict:
     """Função de conveniência para adicionar notícia aos favoritos"""
     return favorites_manager.add_favorite_by_news_id(user_id, news_id, notes, tags)
 
-def get_favorites_list(user_id: int, category: str = None, limit: int = 50) -> Dict:
+def get_favorites_list(user_id: int, category: Optional[str] = None, limit: int = 50) -> Dict:
     """Função de conveniência para listar favoritos"""
     return favorites_manager.get_user_favorites(user_id, category, limit)
 

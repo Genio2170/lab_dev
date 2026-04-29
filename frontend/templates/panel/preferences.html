@@ -998,17 +998,163 @@
         }
 
         // ─── Guardar ──────────────────────────────────────────────
-        function guardarPreferencias() {
-            const prefs = {
-                categorias: [...state.cats],
-                frequencia: state.freq,
-                fontes: [...state.sources]
-            };
-            // Guarda localmente (em produção enviaria ao backend via fetch)
-            localStorage.setItem('nn_preferences', JSON.stringify(prefs));
-            console.log('Preferências guardadas:', prefs);
-            // Redireciona para o dashboard
-            window.location.href = '/dashboard';
+        async function guardarPreferencias() {
+            try {
+                // Mostrar loading
+                const saveButtons = document.querySelectorAll('.btn-primary, .sel-save');
+                saveButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.textContent = 'Guardando...';
+                });
+
+                const prefs = {
+                    categorias: [...state.cats],
+                    frequencia: state.freq,
+                    fontes: [...state.sources]
+                };
+
+                console.log('Enviando preferências:', prefs);
+
+                const response = await fetch('/api/preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(prefs)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Preferências guardadas com sucesso!');
+                    // Mostrar mensagem de sucesso
+                    showMessage('Preferências guardadas com sucesso!', 'success');
+                    // Redirecionar para o dashboard após um breve delay
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    console.error('Erro ao guardar preferências:', result.message);
+                    showMessage(result.message || 'Erro ao guardar preferências', 'error');
+                }
+
+            } catch (error) {
+                console.error('Erro de rede ao guardar preferências:', error);
+                showMessage('Erro de conexão. Tente novamente.', 'error');
+            } finally {
+                // Restaurar botões
+                const saveButtons = document.querySelectorAll('.btn-primary, .sel-save');
+                saveButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.textContent = btn.classList.contains('sel-save') ? 'Guardar preferências' : 'Guardar →';
+                });
+            }
+        }
+
+        // ─── Carregar preferências existentes ─────────────────────
+        async function carregarPreferencias() {
+            try {
+                const response = await fetch('/api/preferences');
+                const result = await response.json();
+
+                if (result.success && result.preferences) {
+                    const prefs = result.preferences;
+                    
+                    // Carregar categorias
+                    if (prefs.categorias && prefs.categorias.length > 0) {
+                        prefs.categorias.forEach(cat => {
+                            const element = document.querySelector(`[data-cat="${cat}"]`);
+                            if (element) {
+                                element.classList.add('selected');
+                                state.cats.add(cat);
+                            }
+                        });
+                    }
+
+                    // Carregar frequência
+                    if (prefs.frequencia) {
+                        const element = document.querySelector(`[data-freq="${prefs.frequencia}"]`);
+                        if (element) {
+                            document.querySelectorAll('[data-freq]').forEach(s => s.classList.remove('selected'));
+                            element.classList.add('selected');
+                            state.freq = prefs.frequencia;
+                        }
+                    }
+
+                    // Carregar fontes
+                    if (prefs.fontes && prefs.fontes.length > 0) {
+                        prefs.fontes.forEach(src => {
+                            const element = document.querySelector(`[data-src="${src}"]`);
+                            if (element) {
+                                element.classList.add('selected');
+                                state.sources.add(src);
+                            }
+                        });
+                    }
+
+                    updateStats();
+                    console.log('Preferências carregadas:', prefs);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar preferências:', error);
+            }
+        }
+
+        // ─── Mostrar mensagens ────────────────────────────────────
+        function showMessage(message, type) {
+            // Remover mensagem anterior se existir
+            const existingMessage = document.querySelector('.message-toast');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            // Criar elemento de mensagem
+            const messageElement = document.createElement('div');
+            messageElement.className = `message-toast message-${type}`;
+            messageElement.textContent = message;
+
+            // Estilos inline para a mensagem
+            Object.assign(messageElement.style, {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                color: '#fff',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: '500',
+                fontSize: '14px',
+                zIndex: '1000',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                transition: 'transform 0.3s ease, opacity 0.3s ease',
+                transform: 'translateX(400px)',
+                opacity: '0'
+            });
+
+            if (type === 'success') {
+                messageElement.style.background = '#10b981';
+            } else if (type === 'error') {
+                messageElement.style.background = '#ef4444';
+            }
+
+            document.body.appendChild(messageElement);
+
+            // Animar entrada
+            setTimeout(() => {
+                messageElement.style.transform = 'translateX(0)';
+                messageElement.style.opacity = '1';
+            }, 100);
+
+            // Remover após 4 segundos
+            setTimeout(() => {
+                messageElement.style.transform = 'translateX(400px)';
+                messageElement.style.opacity = '0';
+                setTimeout(() => {
+                    if (messageElement.parentNode) {
+                        messageElement.parentNode.removeChild(messageElement);
+                    }
+                }, 300);
+            }, 4000);
         }
 
         // ─── Smooth scroll dos links nav ─────────────────────────
@@ -1025,6 +1171,12 @@
             const scrolled = window.scrollY;
             const max = document.body.scrollHeight - window.innerHeight;
             document.getElementById('progressFill').style.width = (scrolled / max * 100) + '%';
+        });
+
+        // ─── Inicialização ────────────────────────────────────────
+        // Carregar preferências existentes quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarPreferencias();
         });
     </script>
 

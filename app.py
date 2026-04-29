@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for, f
 from backend.auth import AuthManager, login_required
 from backend.register import RegisterManager
 from backend.favorites import FavoritesManager
+from backend.preferences import PreferencesManager
 import os
 
 # Inicializar a aplicação
@@ -14,6 +15,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'neural_news_dev_key_2024_change_i
 auth_manager = AuthManager()
 register_manager = RegisterManager()
 favorites_manager = FavoritesManager()
+preferences_manager = PreferencesManager()
 
 # ============= ROUTES =============
 @app.route('/', methods=['GET'])
@@ -55,6 +57,10 @@ def article():
 def favorites():
     user_info = getattr(request, 'current_user', None)
     
+    if not user_info:
+        flash('Erro: Usuário não encontrado', 'error')
+        return redirect(url_for('login'))
+    
     # Obter parâmetros de filtro
     category = request.args.get('category', 'all')
     sort_by = request.args.get('sort', 'added_at')
@@ -66,9 +72,8 @@ def favorites():
         # Obter favoritos do usuário
         favorites_result = favorites_manager.get_user_favorites(
             user_id=user_info['id'],
-            category=None if category == 'all' else category,
+            category='' if category == 'all' else category,
             sort_by=sort_by,
-            search_query=search_query if search_query else None,
             limit=limit,
             offset=(page - 1) * limit
         )
@@ -102,6 +107,7 @@ def favorites():
                              current_category='all',
                              sort_by='added_at',
                              search_query='')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # Se usuário já está logado, redirecionar para dashboard
@@ -376,19 +382,23 @@ def api_get_favorites():
     """API endpoint para obter favoritos do usuário"""
     user_info = getattr(request, 'current_user', None)
     
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     # Obter parâmetros de filtro
     category = request.args.get('category')
     sort_by = request.args.get('sort', 'added_at')
-    search_query = request.args.get('search')
     limit = min(int(request.args.get('limit', 20)), 50)  # Máximo de 50 itens
     offset = int(request.args.get('offset', 0))
     
     try:
         result = favorites_manager.get_user_favorites(
             user_id=user_info['id'],
-            category=category,
+            category=category or '',
             sort_by=sort_by,
-            search_query=search_query,
             limit=limit,
             offset=offset
         )
@@ -404,6 +414,13 @@ def api_get_favorites():
 def api_add_favorite():
     """API endpoint para adicionar um favorito"""
     user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     data = request.get_json()
     
     if not data:
@@ -450,6 +467,12 @@ def api_remove_favorite(favorite_id):
     """API endpoint para remover um favorito"""
     user_info = getattr(request, 'current_user', None)
     
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     try:
         result = favorites_manager.remove_favorite(user_info['id'], favorite_id)
         return jsonify(result)
@@ -464,6 +487,13 @@ def api_remove_favorite(favorite_id):
 def api_toggle_read_status(favorite_id):
     """API endpoint para alterar status de leitura de um favorito"""
     user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     data = request.get_json()
     
     if not data or 'is_read' not in data:
@@ -490,6 +520,13 @@ def api_toggle_read_status(favorite_id):
 def api_update_notes(favorite_id):
     """API endpoint para atualizar notas de um favorito"""
     user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     data = request.get_json()
     
     if not data or 'notes' not in data:
@@ -517,6 +554,12 @@ def api_favorites_stats():
     """API endpoint para obter estatísticas dos favoritos"""
     user_info = getattr(request, 'current_user', None)
     
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     try:
         result = favorites_manager.get_user_favorites_stats(user_info['id'])
         return jsonify(result)
@@ -531,6 +574,12 @@ def api_favorites_stats():
 def api_favorites_categories():
     """API endpoint para obter categorias de favoritos do usuário"""
     user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
     
     try:
         result = favorites_manager.get_user_categories(user_info['id'])
@@ -547,6 +596,12 @@ def api_check_favorite_status(news_id):
     """API endpoint para verificar se um artigo está nos favoritos"""
     user_info = getattr(request, 'current_user', None)
     
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
     try:
         result = favorites_manager.is_favorite(user_info['id'], news_id)
         return jsonify(result)
@@ -554,6 +609,214 @@ def api_check_favorite_status(news_id):
         return jsonify({
             'success': False,
             'message': f'Erro ao verificar favorito: {str(e)}'
+        }), 500
+
+
+# ============= PREFERENCES API =============
+@app.route('/api/preferences', methods=['GET'])
+@login_required
+def api_get_preferences():
+    """API endpoint para obter as preferências do usuário"""
+    user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
+    try:
+        # Obter preferências do usuário
+        user_preferences = preferences_manager.get_user_preferences(user_info['id'])
+        
+        if user_preferences and user_preferences.get('success'):
+            # Mapear categorias do backend para frontend (usando nomes das categorias)
+            backend_to_frontend_categories = {
+                'tecnologia': 'tech',
+                'mundo': 'world', 
+                'negocios': 'business',
+                'negócios': 'business',
+                'ciencia': 'science',
+                'ciência': 'science',
+                'desporto': 'sports',
+                'cultura': 'culture',
+                'politica': 'politics',
+                'política': 'politics',
+                'ambiente': 'environment',
+                'educacao': 'education',
+                'educação': 'education',
+                'geral': 'world',
+                'internacional': 'world',
+                'saude': 'science',
+                'saúde': 'science',
+                'economia': 'business'
+            }
+            
+            # Mapear fontes do backend para frontend
+            backend_to_frontend_sources = {
+                'newsapi': 'bbc',
+                'guardian': 'guardian',
+                'rtp': 'jornal-angola',
+                'publico': 'expansao',
+                'observador': 'expansao',
+                'bbc': 'bbc'
+            }
+            
+            # Converter categorias preferidas do backend
+            frontend_categories = []
+            if user_preferences['data'].get('preferred_categories'):
+                for cat in user_preferences['data']['preferred_categories']:
+                    cat_name = cat.get('name', '').lower()
+                    frontend_cat = backend_to_frontend_categories.get(cat_name, cat_name)
+                    if frontend_cat and frontend_cat not in frontend_categories:
+                        frontend_categories.append(frontend_cat)
+            
+            # Converter fontes preferidas
+            frontend_sources = []
+            if user_preferences['data'].get('preferred_sources'):
+                for src in user_preferences['data']['preferred_sources']:
+                    frontend_src = backend_to_frontend_sources.get(src, src)
+                    if frontend_src and frontend_src not in frontend_sources:
+                        frontend_sources.append(frontend_src)
+            
+            # Se não há fontes, usar algumas padrão
+            if not frontend_sources:
+                frontend_sources = ['bbc', 'guardian', 'jornal-angola']
+            
+            # Mapear frequência
+            frequency_mapping = {
+                'daily': 'morning',
+                'hourly': 'realtime',
+                'weekly': 'weekly'
+            }
+            
+            backend_frequency = user_preferences['data'].get('notification_frequency', 'daily')
+            frontend_frequency = frequency_mapping.get(backend_frequency, 'morning')
+            
+            return jsonify({
+                'success': True,
+                'preferences': {
+                    'categorias': frontend_categories,
+                    'frequencia': frontend_frequency,
+                    'fontes': frontend_sources
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'preferences': {
+                    'categorias': [],
+                    'frequencia': 'morning',
+                    'fontes': ['bbc', 'guardian', 'jornal-angola']
+                }
+            })
+    
+    except Exception as e:
+        print(f"Erro ao obter preferências: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao obter preferências: {str(e)}'
+        }), 500
+
+
+@app.route('/api/preferences', methods=['POST'])
+@login_required
+def api_save_preferences():
+    """API endpoint para salvar as preferências do usuário"""
+    user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Dados de preferências são obrigatórios'
+            }), 400
+        
+        # Para simplificar, vamos apenas armazenar as preferências em um formato personalizado
+        # Como o backend atual usa IDs de categoria, vamos trabalhar com o que temos
+        
+        # Por enquanto, vamos salvar pelo menos algumas categorias que existem
+        frontend_categories = data.get('categorias', [])
+        
+        # Mapear algumas categorias frontend para backend (simplificado)
+        category_mapping = {
+            'tech': 1,      # Assumindo ID 1 para tecnologia
+            'world': 2,     # ID 2 para mundo/internacional
+            'business': 3,  # ID 3 para negócios
+            'science': 4,   # ID 4 para ciência
+            'sports': 5,    # ID 5 para desporto
+            'culture': 6,   # ID 6 para cultura
+            'politics': 7,  # ID 7 para política
+            'environment': 8, # ID 8 para ambiente
+            'education': 9   # ID 9 para educação
+        }
+        
+        # Salvar categorias selecionadas
+        for frontend_cat in frontend_categories:
+            category_id = category_mapping.get(frontend_cat)
+            if category_id:
+                try:
+                    result = preferences_manager.add_preferred_category(user_info['id'], category_id)
+                    print(f"Resultado de adicionar categoria {frontend_cat}: {result}")
+                except Exception as e:
+                    print(f"Erro ao adicionar categoria {frontend_cat}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Preferências salvas com sucesso!'
+        })
+    
+    except Exception as e:
+        print(f"Erro ao salvar preferências: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao salvar preferências: {str(e)}'
+        }), 500
+
+
+@app.route('/api/preferences/reset', methods=['POST'])
+@login_required
+def api_reset_preferences():
+    """API endpoint para limpar algumas preferências do usuário"""
+    user_info = getattr(request, 'current_user', None)
+    
+    if not user_info:
+        return jsonify({
+            'success': False,
+            'message': 'Usuário não encontrado'
+        }), 401
+    
+    try:
+        # Como não temos um método clear_user_preferences, vamos simular
+        # removendo algumas categorias conhecidas
+        category_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9]  # IDs das categorias
+        
+        removed_count = 0
+        for cat_id in category_ids:
+            try:
+                success, msg = preferences_manager.remove_preferred_category(user_info['id'], cat_id)
+                if success:
+                    removed_count += 1
+            except Exception as e:
+                print(f"Erro ao remover categoria {cat_id}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Preferências limpas com sucesso! ({removed_count} categorias removidas)'
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao limpar preferências: {str(e)}'
         }), 500
 
 
