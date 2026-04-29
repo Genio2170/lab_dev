@@ -17,26 +17,76 @@
 
     // Simulação de login
     function doLogin() {
-      const email = document.getElementById('loginEmail').value;
+      const email = document.getElementById('loginEmail').value.trim();
       const pass  = document.getElementById('loginPass').value;
+      const rememberMe = document.querySelector('input[type="checkbox"]').checked;
       const btn   = document.getElementById('loginBtn');
       const alert = document.getElementById('loginAlert');
 
       alert.style.display = 'none';
 
       if (!email || !pass) {
-        alert.style.display = 'flex';
-        alert.textContent   = '⚠ Por favor preencha todos os campos.';
+        showAlert('⚠ Por favor preencha todos os campos.', 'error');
+        return;
+      }
+
+      // Validar formato de email básico
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showAlert('⚠ Por favor insira um email válido.', 'error');
         return;
       }
 
       btn.textContent = 'A entrar...';
       btn.classList.add('loading');
+      btn.disabled = true;
 
-      setTimeout(() => {
-        // Simulação: qualquer email/senha válida redireciona
-        window.location.href = 'index.html';
-      }, 1500);
+      // Enviar requisição AJAX para o servidor
+      fetch('/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: pass,
+          remember_me: rememberMe
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showAlert('✓ ' + data.message, 'success');
+          setTimeout(() => {
+            window.location.href = data.redirect || '/artigos';
+          }, 1000);
+        } else {
+          showAlert('⚠ ' + data.message, 'error');
+          resetButton();
+        }
+      })
+      .catch(error => {
+        console.error('Erro na requisição:', error);
+        showAlert('⚠ Erro de conexão. Tente novamente.', 'error');
+        resetButton();
+      });
+    }
+
+    // Função auxiliar para mostrar alertas
+    function showAlert(message, type) {
+      const alert = document.getElementById('loginAlert');
+      alert.textContent = message;
+      alert.className = `alert ${type}`;
+      alert.style.display = 'flex';
+    }
+
+    // Função auxiliar para resetar o botão
+    function resetButton() {
+      const btn = document.getElementById('loginBtn');
+      btn.textContent = 'Entrar na minha conta →';
+      btn.classList.remove('loading');
+      btn.disabled = false;
     }
 
     // Simulação de registo

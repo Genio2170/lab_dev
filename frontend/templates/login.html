@@ -88,7 +88,7 @@
 
     <!-- ========== FORMULÁRIO LOGIN ========== -->
 
-    <form method="post"  class="form-login" id="formLogin">
+    <form method="post" action="{{ url_for('login') }}" class="form-login" id="formLogin">
 
       <div class="form-header">
         <h2 class="form-title">Bem-vindo de volta 👋</h2>
@@ -96,7 +96,17 @@
       </div>
 
       <!-- Alerta -->
-      <div class="alert error" id="loginAlert">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert {{ 'error' if category == 'error' else 'success' }}" style="display: flex;">
+              {{ '⚠' if category == 'error' else '✓' }} {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      
+      <div class="alert error" id="loginAlert" style="display: none;">
         ⚠ Email ou palavra-passe incorretos.
       </div>
 
@@ -115,7 +125,7 @@
         <label class="form-label">Email</label>
         <div class="form-input-wrap">
           <span class="form-input-icon">✉</span>
-          <input class="form-input" type="email" id="loginEmail" placeholder="o-seu@email.com" />
+          <input class="form-input" type="email" id="loginEmail" name="email" placeholder="o-seu@email.com" required />
         </div>
       </div>
 
@@ -124,21 +134,21 @@
         <label class="form-label">Palavra-passe</label>
         <div class="form-input-wrap">
           <span class="form-input-icon">🔒</span>
-          <input class="form-input" type="password" id="loginPass" placeholder="••••••••" />
-          <button class="toggle-pass" onclick="togglePass('loginPass', this)">👁</button>
+          <input class="form-input" type="password" id="loginPass" name="password" placeholder="••••••••" required />
+          <button type="button" class="toggle-pass" onclick="togglePass('loginPass', this)">👁</button>
         </div>
       </div>
 
       <!-- Lembrar + esqueceu -->
       <div class="form-row-aux">
         <label class="checkbox-wrap">
-          <input type="checkbox" checked />
+          <input type="checkbox" name="remember_me" checked />
           <span class="checkbox-label">Manter sessão</span>
         </label>
         <a href="#" class="forgot-link">Esqueceu a senha?</a>
       </div>
 
-      <button class="btn-primary" id="loginBtn" onclick="doLogin()">
+      <button type="button" class="btn-primary" id="loginBtn" onclick="doLogin()">
         Entrar na minha conta →
       </button>
 
