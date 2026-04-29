@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Artigo — NeuralNews</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       TOKENS (mesmos do index)
+    ============================================ */
+    :root {
+      --bg:        #f0f2f5;
+      --surface:   #ffffff;
+      --ink:       #0d0f14;
+      --ink-2:     #4a4f5e;
+      --ink-3:     #8a909f;
+      --accent:    #0057ff;
+      --accent-2:  #00c6ff;
+      --accent-glow: rgba(0, 87, 255, 0.18);
+      --red:       #ff3b57;
+      --border:    rgba(0,0,0,0.07);
+      --radius:    14px;
+      --shadow:    0 4px 32px rgba(0,0,0,0.08);
+      --font-display: 'Syne', sans-serif;
+      --font-serif:   'DM Serif Display', serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       TICKER
+    ============================================ */
+    .ticker-bar {
+      background: var(--ink); color: #fff;
+      font-size: 0.78rem;
+      font-family: var(--font-display); font-weight: 600;
+      padding: 8px 0; overflow: hidden;
+      display: flex; align-items: center;
+    }
+    .ticker-label {
+      background: var(--accent);
+      padding: 0 18px; height: 100%;
+      display: flex; align-items: center;
+      font-size: 0.72rem; letter-spacing: 1.5px; flex-shrink: 0;
+    }
+    .ticker-track {
+      display: flex;
+      animation: ticker 28s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-item { padding: 0 2.5rem; opacity: 0.75; }
+    .ticker-item::after { content: '◆'; margin-left: 2.5rem; color: var(--accent); opacity: 0.6; }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ============================================
+       HEADER
+    ============================================ */
+    header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(240, 242, 245, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%; height: 68px;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem;
+    }
+    .logo {
+      font-family: var(--font-display); font-weight: 800;
+      font-size: 1.35rem; letter-spacing: -0.5px;
+      color: var(--ink); display: flex; align-items: center; gap: 6px;
+      text-decoration: none;
+    }
+    .logo-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 14px var(--accent-2);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.4); opacity: 0.7; }
+    }
+    .logo-text span { color: var(--accent); }
+
+    nav { display: flex; align-items: center; gap: 10px; }
+    .btn-nav {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--ink-2); padding: 7px 18px; border-radius: 100px;
+      font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-nav:hover {
+      background: var(--accent); color: #fff;
+      border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .user-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 14px 5px 5px;
+    }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; color: #fff; font-weight: 700;
+    }
+    .user-name { font-size: 0.82rem; font-weight: 500; color: var(--ink); }
+    .btn-logout {
+      background: none; border: none; color: var(--ink-2);
+      font-size: 0.78rem; cursor: pointer;
+      padding: 0 0 0 10px; border-left: 1px solid var(--border);
+      margin-left: 4px; font-family: var(--font-body); transition: color 0.2s;
+    }
+    .btn-logout:hover { color: var(--red); }
+
+    /* ============================================
+       BREADCRUMB
+    ============================================ */
+    .breadcrumb {
+      padding: 1rem 5%;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; color: var(--ink-3);
+      font-family: var(--font-display); font-weight: 600;
+    }
+    .breadcrumb a {
+      color: var(--ink-3); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .breadcrumb a:hover { color: var(--accent); }
+    .breadcrumb-sep { opacity: 0.4; }
+    .breadcrumb-current { color: var(--accent); }
+
+    /* ============================================
+       LAYOUT PRINCIPAL
+    ============================================ */
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 5%;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrapper { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    /* ============================================
+       ARTIGO PRINCIPAL
+    ============================================ */
+    .article-main { animation: fadeUp 0.5s ease both; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Meta topo */
+    .article-meta-top {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1.2rem; flex-wrap: wrap;
+    }
+    .cat-badge {
+      background: var(--accent); color: #fff;
+      font-family: var(--font-display); font-size: 0.65rem;
+      font-weight: 700; letter-spacing: 1px;
+      padding: 4px 12px; border-radius: 100px;
+      text-transform: uppercase;
+    }
+    .hot-badge {
+      background: var(--red); color: #fff;
+      font-family: var(--font-display); font-size: 0.65rem;
+      font-weight: 700; letter-spacing: 1px;
+      padding: 4px 12px; border-radius: 100px;
+      text-transform: uppercase;
+    }
+    .read-time {
+      font-size: 0.78rem; color: var(--ink-3);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Título */
+    .article-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      letter-spacing: -0.5px;
+    }
+
+    /* Subtítulo */
+    .article-subtitle {
+      font-size: 1.05rem;
+      color: var(--ink-2);
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+      border-left: 3px solid var(--accent);
+      padding-left: 1rem;
+    }
+
+    /* Autor row */
+    .author-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .author-info { display: flex; align-items: center; gap: 10px; }
+    .author-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 0.8rem;
+      font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .author-name {
+      font-family: var(--font-display); font-size: 0.88rem;
+      font-weight: 700; color: var(--ink);
+    }
+    .author-date { font-size: 0.75rem; color: var(--ink-3); margin-top: 1px; }
+
+    .share-actions { display: flex; gap: 8px; }
+    .btn-share {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--ink-2); padding: 7px 14px; border-radius: 100px;
+      font-family: var(--font-body); font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-share:hover {
+      background: var(--accent); color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-fav-article {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--ink-2); padding: 7px 14px; border-radius: 100px;
+      font-family: var(--font-body); font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-fav-article:hover, .btn-fav-article.active {
+      background: #fff5c2; border-color: #ffc107; color: #b37800;
+    }
+
+    /* Imagem hero */
+    .article-hero {
+      width: 100%; height: 420px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      display: block;
+      margin-bottom: 0.6rem;
+      box-shadow: var(--shadow);
+    }
+    .hero-caption {
+      font-size: 0.75rem; color: var(--ink-3);
+      text-align: right; margin-bottom: 2rem;
+      font-style: italic;
+    }
+
+    /* Corpo do artigo */
+    .article-body { font-size: 1rem; line-height: 1.85; color: var(--ink); }
+
+    .article-body p { margin-bottom: 1.4rem; }
+
+    .article-body h2 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem; font-weight: 400;
+      color: var(--ink); margin: 2.2rem 0 1rem;
+      letter-spacing: -0.3px;
+    }
+
+    .article-body h3 {
+      font-family: var(--font-display);
+      font-size: 1rem; font-weight: 700;
+      color: var(--ink); margin: 1.8rem 0 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .article-body blockquote {
+      margin: 2rem 0;
+      padding: 1.4rem 1.8rem;
+      background: linear-gradient(135deg, rgba(0,87,255,0.05), rgba(0,198,255,0.04));
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .article-body blockquote p {
+      font-family: var(--font-serif);
+      font-size: 1.15rem; font-style: italic;
+      color: var(--ink); margin: 0 0 0.4rem;
+      line-height: 1.65;
+    }
+
+    .article-body blockquote cite {
+      font-size: 0.78rem; color: var(--ink-3);
+      font-style: normal; font-family: var(--font-display);
+      font-weight: 600; letter-spacing: 0.3px;
+    }
+
+    .article-body .highlight-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.6rem;
+      margin: 2rem 0;
+      box-shadow: var(--shadow);
+    }
+
+    .article-body .highlight-box .hb-label {
+      font-family: var(--font-display);
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 0.5rem;
+    }
+
+    .article-body .highlight-box p {
+      margin: 0; font-size: 0.92rem; color: var(--ink-2);
+    }
+
+    /* Tags */
+    .article-tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 2.5rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .tag {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--ink-2); padding: 5px 14px;
+      border-radius: 100px; font-size: 0.78rem;
+      font-family: var(--font-display); font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .tag:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Bottom share */
+    .article-bottom-share {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-top: 2rem; padding: 1.2rem 1.6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .abs-label {
+      font-family: var(--font-display);
+      font-size: 0.85rem; font-weight: 700; color: var(--ink);
+    }
+    .abs-actions { display: flex; gap: 8px; }
+
+    /* ============================================
+       ARTIGOS RELACIONADOS
+    ============================================ */
+    .related-section { margin-top: 3rem; }
+    .section-title {
+      font-family: var(--font-display); font-size: 1.1rem;
+      font-weight: 800; letter-spacing: -0.3px;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .section-title::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 20px; border-radius: 4px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+    }
+    .related-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem;
+    }
+    @media (max-width: 700px) { .related-grid { grid-template-columns: 1fr; } }
+
+    .related-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: var(--shadow); cursor: pointer;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .related-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,87,255,0.12);
+      border-color: rgba(0,87,255,0.2);
+    }
+    .rc-img {
+      height: 130px; background-size: cover;
+      background-position: center;
+    }
+    .rc-content { padding: 1rem; }
+    .rc-source {
+      font-family: var(--font-display); font-size: 0.62rem;
+      font-weight: 700; letter-spacing: 0.8px;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .rc-title {
+      font-family: var(--font-display); font-size: 0.83rem;
+      font-weight: 700; line-height: 1.4; color: var(--ink);
+    }
+
+    /* ============================================
+       SIDEBAR
+    ============================================ */
+    .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .sidebar-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem;
+      box-shadow: var(--shadow);
+    }
+
+    .sb-title {
+      font-family: var(--font-display); font-size: 0.75rem;
+      font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    /* IA Insight */
+    .ia-insight {
+      background: linear-gradient(135deg, var(--accent), #0099ff);
+      color: #fff; border: none;
+    }
+    .ia-insight .sb-title { color: rgba(255,255,255,0.7); }
+    .ia-insight-text {
+      font-size: 0.88rem; line-height: 1.6;
+      color: rgba(255,255,255,0.92); margin-bottom: 1rem;
+    }
+    .ia-insight-btn {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff; padding: 7px 16px; border-radius: 100px;
+      font-family: var(--font-display); font-size: 0.75rem;
+      font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .ia-insight-btn:hover { background: rgba(255,255,255,0.3); }
+
+    /* Trending */
+    .sb-trending-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 0.7rem 0; border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sb-trending-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .sb-num {
+      font-family: var(--font-display); font-size: 1.1rem;
+      font-weight: 800; color: var(--accent); opacity: 0.2;
+      line-height: 1; flex-shrink: 0; width: 22px;
+    }
+    .sb-text {
+      font-family: var(--font-display); font-size: 0.8rem;
+      font-weight: 700; line-height: 1.4; color: var(--ink);
+    }
+    .sb-src { font-size: 0.7rem; color: var(--ink-3); margin-top: 2px; }
+
+    /* Newsletter */
+    .nl-text { font-size: 0.85rem; color: var(--ink-2); margin-bottom: 1rem; line-height: 1.6; }
+    .nl-input {
+      width: 100%; padding: 9px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: var(--font-body); font-size: 0.83rem;
+      background: var(--bg); color: var(--ink);
+      margin-bottom: 8px; outline: none; transition: border-color 0.2s;
+    }
+    .nl-input:focus { border-color: var(--accent); }
+    .nl-btn {
+      width: 100%; padding: 9px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: var(--font-display); font-size: 0.82rem;
+      font-weight: 700; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.3px;
+    }
+    .nl-btn:hover { background: #0044cc; box-shadow: 0 4px 18px var(--accent-glow); }
+
+    /* ============================================
+       FOOTER
+    ============================================ */
+    footer {
+      margin-top: 4rem; padding: 2rem 5%;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.78rem; color: var(--ink-2);
+    }
+    footer .logo { font-size: 1rem; }
+  </style>
+</head>
+<body>
+
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-label">AO VIVO</div>
+    <div style="overflow:hidden; flex:1; display:flex;">
+      <div class="ticker-track">
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-dot"></div>
+      <div class="logo-text">NEURAL<span>NEWS</span></div>
+    </a>
+    <nav>
+      <button class="btn-nav">★ Favoritos</button>
+      <button class="btn-nav">⚙ Preferências</button>
+      <div class="user-chip">
+        <div class="user-avatar">U</div>
+        <span class="user-name">Utilizador</span>
+        <button class="btn-logout">Sair</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <a href="index.html">Início</a>
+    <span class="breadcrumb-sep">›</span>
+    <a href="category.html">Tecnologia</a>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-current">O Futuro da IA em Angola</span>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="page-wrapper">
+
+    <!-- ARTIGO -->
+    <article class="article-main">
+
+      <!-- Meta topo -->
+      <div class="article-meta-top">
+        <span class="cat-badge">Tecnologia</span>
+        <span class="hot-badge">🔥 Tendência</span>
+        <span class="read-time">⏱ 6 min de leitura</span>
+      </div>
+
+      <!-- Título -->
+      <h1 class="article-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h1>
+
+      <!-- Subtítulo -->
+      <p class="article-subtitle">
+        Uma análise profunda sobre o crescimento tecnológico no IPIL e além — como a IA está a transformar setores críticos da economia angolana e a posicionar África como próximo polo de inovação global.
+      </p>
+
+      <!-- Autor -->
+      <div class="author-row">
+        <div class="author-info">
+          <div class="author-avatar">MK</div>
+          <div>
+            <div class="author-name">Manuel Kiala</div>
+            <div class="author-date">28 de Abril de 2026 · TechCrunch Africa</div>
+          </div>
+        </div>
+        <div class="share-actions">
+          <button class="btn-share">↗ Partilhar</button>
+          <button class="btn-fav-article" id="favBtn">★ Guardar</button>
+        </div>
+      </div>
+
+      <!-- Imagem hero -->
+      <img
+        src="https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=1200&q=85"
+        alt="Inteligência Artificial em África"
+        class="article-hero"
+      />
+      <p class="hero-caption">Foto: Unsplash / IA e Inovação em África · 2026</p>
+
+      <!-- Corpo -->
+      <div class="article-body">
+
+        <p>Angola está a atravessar uma transformação silenciosa mas poderosa. No Instituto Politécnico Industrial de Luanda (IPIL) e noutras instituições de ensino técnico, uma nova geração de engenheiros e programadores está a dominar ferramentas de inteligência artificial que, até há poucos anos, eram exclusividade de grandes centros tecnológicos como Silicon Valley ou Shenzhen.</p>
+
+        <h2>O papel do IPIL na revolução tecnológica</h2>
+
+        <p>Fundado com o objetivo de formar técnicos especializados, o IPIL tem vindo a incorporar disciplinas de machine learning, processamento de linguagem natural e visão computacional nos seus currículos. Os resultados começam a aparecer: startups fundadas por ex-alunos já estão a resolver problemas reais, desde a otimização da distribuição de energia elétrica em Luanda até sistemas de diagnóstico médico assistido por IA nas províncias.</p>
+
+        <blockquote>
+          <p>"A IA não é o futuro de Angola — é o presente. O que falta é escala e infraestrutura."</p>
+          <cite>— Dr. António Lopes, Diretor de Inovação, IPIL</cite>
+        </blockquote>
+
+        <p>Este otimismo é partilhado por investidores internacionais. Nos últimos 18 meses, Angola recebeu mais de 340 milhões de dólares em investimento tecnológico, com particular enfoque em IA aplicada à agricultura, saúde e finanças digitais.</p>
+
+        <h2>África como próximo polo global de IA</h2>
+
+        <p>O continente africano possui características únicas que o tornam especialmente atraente para o desenvolvimento de IA: uma população jovem (mediana de 19 anos), uma vasta quantidade de dados não estruturados em línguas locais ainda pouco exploradas, e problemas reais de escala global à espera de soluções tecnológicas.</p>
+
+        <div class="highlight-box">
+          <div class="hb-label">✦ Dado chave</div>
+          <p>Segundo o relatório Global AI Index 2026, três países africanos — Nigéria, Quénia e África do Sul — entraram pela primeira vez no top 30 mundial em adoção de IA empresarial. Angola ocupa agora o 4.º lugar no continente.</p>
+        </div>
+
+        <h3>Desafios que persistem</h3>
+
+        <p>Apesar do otimismo, os obstáculos são reais. A conectividade continua irregular fora das grandes cidades, o custo da computação em nuvem permanece proibitivo para pequenas startups, e a fuga de cérebros — especialmente para a Europa e Estados Unidos — priva o país dos seus talentos mais brilhantes.</p>
+
+        <p>O governo angolano anunciou recentemente um pacote de incentivos fiscais para empresas tecnológicas que mantenham pelo menos 70% das suas operações em território nacional. Se implementado corretamente, este pacote poderá ser o catalisador que Angola precisa para reter os seus engenheiros mais talentosos.</p>
+
+        <h2>O que vem a seguir?</h2>
+
+        <p>A próxima fase da revolução tecnológica angolana passará pela criação de modelos de linguagem treinados em português angolano e línguas nacionais como o Kimbundu e o Kikongo. Estes modelos, mais contextualizados à realidade local, poderão transformar setores como a educação, a saúde pública e a administração governamental.</p>
+
+        <p>O futuro é incerto, como sempre, mas os sinais são promissores. Angola está a construir — tijolo a tijolo, linha de código a linha de código — uma infraestrutura tecnológica que poderá, numa geração, colocar o país no mapa global da inovação.</p>
+
+      </div>
+
+      <!-- Tags -->
+      <div class="article-tags">
+        <span class="tag">#InteligênciaArtificial</span>
+        <span class="tag">#Angola</span>
+        <span class="tag">#África</span>
+        <span class="tag">#IPIL</span>
+        <span class="tag">#Tecnologia</span>
+        <span class="tag">#Inovação</span>
+        <span class="tag">#Startups</span>
+      </div>
+
+      <!-- Partilha final -->
+      <div class="article-bottom-share">
+        <span class="abs-label">Gostou deste artigo? Partilhe!</span>
+        <div class="abs-actions">
+          <button class="btn-share">𝕏 Twitter</button>
+          <button class="btn-share">in LinkedIn</button>
+          <button class="btn-share">🔗 Copiar link</button>
+        </div>
+      </div>
+
+      <!-- Artigos Relacionados -->
+      <div class="related-section">
+        <div class="section-title">Artigos Relacionados</div>
+        <div class="related-grid">
+          <div class="related-card">
+            <div class="rc-img" style="background-image:url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&q=80')"></div>
+            <div class="rc-content">
+              <div class="rc-source">Wired</div>
+              <div class="rc-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</div>
+            </div>
+          </div>
+          <div class="related-card">
+            <div class="rc-img" style="background-image:url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=400&q=80')"></div>
+            <div class="rc-content">
+              <div class="rc-source">Nature</div>
+              <div class="rc-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico</div>
+            </div>
+          </div>
+          <div class="related-card">
+            <div class="rc-img" style="background-image:url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80')"></div>
+            <div class="rc-content">
+              <div class="rc-source">TechAfrica</div>
+              <div class="rc-title">Startup Angolana Levanta 12M$ em Rodada Série A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </article>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- IA Insight -->
+      <div class="sidebar-card ia-insight">
+        <div class="sb-title">✦ Insight da IA</div>
+        <p class="ia-insight-text">Este artigo está alinhado com os seus interesses em Tecnologia e África. 94% dos leitores com perfil semelhante ao seu também leram sobre startups angolanas.</p>
+        <button class="ia-insight-btn">Ver sugestões personalizadas →</button>
+      </div>
+
+      <!-- Trending -->
+      <div class="sidebar-card">
+        <div class="sb-title">🔥 Mais Lidas Agora</div>
+        <div class="sb-trending-item">
+          <div class="sb-num">01</div>
+          <div>
+            <div class="sb-text">Angola aprova lei de proteção de dados pessoais</div>
+            <div class="sb-src">Jornal de Angola · 3h</div>
+          </div>
+        </div>
+        <div class="sb-trending-item">
+          <div class="sb-num">02</div>
+          <div>
+            <div class="sb-text">Startup angolana levanta 12M$ em série A</div>
+            <div class="sb-src">TechAfrica · 5h</div>
+          </div>
+        </div>
+        <div class="sb-trending-item">
+          <div class="sb-num">03</div>
+          <div>
+            <div class="sb-text">Nova vacina contra malária aprovada pela OMS</div>
+            <div class="sb-src">Reuters · 6h</div>
+          </div>
+        </div>
+        <div class="sb-trending-item">
+          <div class="sb-num">04</div>
+          <div>
+            <div class="sb-text">SpaceX lança satélite de comunicações para África</div>
+            <div class="sb-src">Space.com · 8h</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Newsletter -->
+      <div class="sidebar-card">
+        <div class="sb-title">📩 Newsletter</div>
+        <p class="nl-text">Receba os melhores artigos de tecnologia e inovação diretamente no seu email.</p>
+        <input class="nl-input" type="email" placeholder="o-seu@email.com" />
+        <button class="nl-btn">Subscrever Grátis →</button>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <a href="index.html" class="logo" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:6px;">
+      <div class="logo-dot"></div>
+      <div class="logo-text" style="font-family:var(--font-display); font-weight:800;">NEURAL<span style="color:var(--accent)">NEWS</span></div>
+    </a>
+    <span>© 2026 NeuralNews · Dados via NewsAPI · Desenvolvido com IA</span>
+  </footer>
+
+  <script>
+    // Botão favorito
+    const favBtn = document.getElementById('favBtn');
+    favBtn.addEventListener('click', () => {
+      favBtn.classList.toggle('active');
+      favBtn.textContent = favBtn.classList.contains('active') ? '★ Guardado!' : '★ Guardar';
+    });
+
+    // Botão copiar link
+    document.querySelectorAll('.btn-share').forEach(btn => {
+      if (btn.textContent.includes('Copiar')) {
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(window.location.href);
+          btn.textContent = '✓ Copiado!';
+          setTimeout(() => btn.textContent = '🔗 Copiar link', 2000);
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>
