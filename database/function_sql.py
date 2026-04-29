@@ -2,7 +2,7 @@ from bd import Conexao
 import sqlite3
 
 class FunctionSql(Conexao):
-    def __init__(self, banco="user_bd.db"):
+    def __init__(self, banco="schema.db"):
         super().__init__(banco)
 
     def conectar(self):
