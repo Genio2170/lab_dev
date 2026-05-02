@@ -1,745 +1,388 @@
 <!DOCTYPE html>
 <html lang="pt">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Favoritos — NeuralNews</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuralNews — Favoritos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  
-  <style>
-    .favorites-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-
-    .favorites-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .favorites-stats {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .stat-item {
-      background: var(--bg-card);
-      padding: 1rem 1.5rem;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      text-align: center;
-      min-width: 120px;
-    }
-
-    .stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--accent);
-      font-family: var(--font-heading);
-    }
-
-    .stat-label {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    .favorites-filters {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .filter-select {
-      padding: 0.5rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-card);
-      color: var(--text-primary);
-      font-size: 0.875rem;
-    }
-
-    .search-box {
-      padding: 0.5rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-card);
-      color: var(--text-primary);
-      min-width: 250px;
-      font-size: 0.875rem;
-    }
-
-    .favorites-grid {
-      display: grid;
-      gap: 1.5rem;
-    }
-
-    .favorite-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      transition: all 0.2s ease;
-      position: relative;
-    }
-
-    .favorite-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-      border-color: var(--accent);
-    }
-
-    .favorite-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-    }
-
-    .favorite-category {
-      background: var(--accent);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-
-    .favorite-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .action-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.375rem;
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all 0.2s ease;
-      font-size: 0.875rem;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .action-btn:hover {
-      background: var(--bg-hover);
-      color: var(--text-primary);
-    }
-
-    .action-btn.danger:hover {
-      background: #ff4757;
-      color: white;
-      border-color: #ff4757;
-    }
-
-    .favorite-title {
-      font-family: var(--font-heading);
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-      line-height: 1.4;
-    }
-
-    .favorite-description {
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-      line-height: 1.5;
-      margin-bottom: 1rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .favorite-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .favorite-source {
-      font-size: 0.75rem;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .favorite-date {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    .favorite-notes {
-      background: var(--bg-secondary);
-      padding: 0.75rem;
-      border-radius: 8px;
-      border-left: 3px solid var(--accent);
-      margin-bottom: 1rem;
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-    }
-
-    .favorite-tags {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .tag {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      padding: 0.25rem 0.5rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-
-    .read-indicator {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-
-    .read-indicator.unread {
-      background: #ff6b6b;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--text-secondary);
-    }
-
-    .empty-state h3 {
-      font-family: var(--font-heading);
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-      color: var(--text-primary);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #667eea);
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-decoration: none;
-      display: inline-block;
-      font-size: 0.875rem;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .loading {
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-secondary);
-    }
-
-    .pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .pagination-btn {
-      padding: 0.5rem 1rem;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
-
-    .pagination-btn:hover:not(.disabled) {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .pagination-btn.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .pagination-info {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-    }
-
-    @media (max-width: 768px) {
-      .favorites-container {
-        padding: 1rem;
-      }
-
-      .favorites-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .favorites-stats {
-        gap: 1rem;
-      }
-
-      .stat-item {
-        min-width: 100px;
-        padding: 0.75rem;
-      }
-
-      .search-box {
-        min-width: 200px;
-      }
-
-      .favorite-meta {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/favorit.css') }}">
 </head>
-
 <body>
 
   <!-- TICKER -->
   <div class="ticker-bar">
     <div class="ticker-label">AO VIVO</div>
-    <div class="ticker-track">
-      <div class="ticker-item">IA transforma África</div>
-      <div class="ticker-item">Nova startup em Angola</div>
-      <div class="ticker-item">Tecnologia global em alta</div>
-      <div class="ticker-item">Mercados digitais crescem</div>
-      <div class="ticker-item">IA transforma África</div>
-      <div class="ticker-item">Nova startup em Angola</div>
+    <div style="overflow:hidden;flex:1;display:flex;">
+      <div class="ticker-track">
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+        <span class="ticker-item">IA bate recorde de adoção em África</span>
+        <span class="ticker-item">Angola lança programa de inovação tecnológica</span>
+        <span class="ticker-item">Bitcoin ultrapassa os 100 mil dólares novamente</span>
+        <span class="ticker-item">Meta anuncia novo modelo de linguagem open-source</span>
+        <span class="ticker-item">OMS alerta para nova variante respiratória</span>
+      </div>
     </div>
   </div>
 
   <!-- HEADER -->
   <header>
-    <a href="{{ url_for('dashboard') }}" class="logo">
-      <div class="dot"></div>
-      NEURAL<span style="color:var(--accent)">NEWS</span>
+    <a class="logo" href="/painel-controle">
+      <div class="logo-dot"></div>
+      <div class="logo-text">NEURAL<span>NEWS</span></div>
     </a>
-
     <nav>
-      <button onclick="window.location.href='{{ url_for('preferences') }}'" class="btn-nav">⚙ Preferências</button>
+      <button class="btn-nav active">★ Favoritos</button>
+      <button class="btn-nav" onclick="location.href='/preferencias'">⚙ Preferências</button>
       <div class="user-chip">
-        <div class="user-avatar">{{ user.full_name[0] if user and user.full_name else 'U' }}</div>
+          <div class="user-avatar">{{ user.full_name[0] if user and user.full_name else 'U' }}</div>
         <span class="user-name">{{ user.full_name if user and user.full_name else 'Utilizador' }}</span>
-        <button class="btn-logout" onclick="window.location.href='{{ url_for('logout') }}'">Sair</button>
+        <button class="btn-logout" onclick="location.href='/logout'">Sair</button>
       </div>
     </nav>
   </header>
 
-  <!-- CONTENT -->
-  <div class="favorites-container">
-    <div class="favorites-header">
-      <h1>⭐ Os teus Favoritos</h1>
-      
-      <div class="favorites-stats">
-        <div class="stat-item">
-          <div class="stat-number">{{ favorites_stats.total_favorites if favorites_stats else 0 }}</div>
-          <div class="stat-label">Total</div>
+  <!-- MAIN -->
+  <main class="container">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Biblioteca</div>
+        <h1 class="page-title">
+          Os meus Favoritos
+          <span class="count-badge" id="countBadge">8</span>
+        </h1>
+        <p class="page-subtitle">Artigos guardados para ler, rever e organizar a qualquer momento.</p>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Pesquisar favoritos…" />
         </div>
-        <div class="stat-item">
-          <div class="stat-number">{{ favorites_stats.unread_favorites if favorites_stats else 0 }}</div>
-          <div class="stat-label">Não Lidos</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number">{{ (favorites_stats.read_percentage|round(1) if favorites_stats else 0) }}%</div>
-          <div class="stat-label">Lidos</div>
+        <button class="filter-chip active" data-filter="all">Todos</button>
+        <button class="filter-chip" data-filter="Tecnologia">Tecnologia</button>
+        <button class="filter-chip" data-filter="Ciência">Ciência</button>
+        <button class="filter-chip" data-filter="Negócios">Negócios</button>
+        <div class="toolbar-right">
+          <button class="view-btn active" id="gridViewBtn" title="Grelha">⊞</button>
+          <button class="view-btn" id="listViewBtn" title="Lista">☰</button>
+          <button class="btn-danger" id="clearAllBtn">🗑 Limpar tudo</button>
         </div>
       </div>
     </div>
 
-    <!-- FILTROS E PESQUISA -->
-    <div class="favorites-filters">
-      <div class="filter-group">
-        <label for="categoryFilter">Categoria:</label>
-        <select id="categoryFilter" class="filter-select" onchange="filterFavorites()">
-          <option value="all">Todas</option>
-          {% for category in available_categories %}
-          <option value="{{ category }}" {{ 'selected' if category == current_category else '' }}>
-            {{ category.title() }}
-          </option>
-          {% endfor %}
-        </select>
+    <!-- STATS -->
+    <div class="stats-strip">
+      <div class="stat-card">
+        <div class="stat-icon blue">★</div>
+        <div>
+          <div class="stat-value" id="totalSaved">8</div>
+          <div class="stat-desc">Artigos guardados</div>
+        </div>
       </div>
-
-      <div class="filter-group">
-        <label for="sortBy">Ordenar por:</label>
-        <select id="sortBy" class="filter-select" onchange="filterFavorites()">
-          <option value="added_at" {{ 'selected' if sort_by == 'added_at' else '' }}>Data de Adição</option>
-          <option value="title" {{ 'selected' if sort_by == 'title' else '' }}>Título</option>
-          <option value="category" {{ 'selected' if sort_by == 'category' else '' }}>Categoria</option>
-          <option value="is_read" {{ 'selected' if sort_by == 'is_read' else '' }}>Status de Leitura</option>
-        </select>
+      <div class="stat-card">
+        <div class="stat-icon green">📂</div>
+        <div>
+          <div class="stat-value">4</div>
+          <div class="stat-desc">Coleções criadas</div>
+        </div>
       </div>
-
-      <div class="filter-group">
-        <input type="text" 
-               id="searchBox" 
-               class="search-box" 
-               placeholder="🔍 Pesquisar nos favoritos..."
-               value="{{ search_query or '' }}"
-               onkeyup="handleSearch(event)">
+      <div class="stat-card">
+        <div class="stat-icon yellow">⚡</div>
+        <div>
+          <div class="stat-value">3</div>
+          <div class="stat-desc">Categorias diferentes</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">📅</div>
+        <div>
+          <div class="stat-value">Hoje</div>
+          <div class="stat-desc">Último artigo guardado</div>
+        </div>
       </div>
     </div>
 
-    <!-- LISTA DE FAVORITOS -->
-    <div class="favorites-grid" id="favoritesGrid">
-      {% if favorites and favorites.data.favorites %}
-        {% for favorite in favorites.data.favorites %}
-        <div class="favorite-card" data-id="{{ favorite.id }}">
-          <div class="read-indicator {{ 'unread' if not favorite.is_read else '' }}"></div>
-          
-          <div class="favorite-header">
-            <span class="favorite-category">{{ favorite.category }}</span>
-            <div class="favorite-actions">
-              <button class="action-btn" onclick="toggleRead({{ favorite.id }}, {{ favorite.is_read|lower }})" 
-                      title="{{ 'Marcar como não lido' if favorite.is_read else 'Marcar como lido' }}">
-                {{ '📖' if not favorite.is_read else '✓' }}
-              </button>
-              <button class="action-btn" onclick="editNotes({{ favorite.id }}, '{{ favorite.notes|replace("'", "\\'") }}')" title="Editar notas">
-                📝
-              </button>
-              <button class="action-btn danger" onclick="removeFavorite({{ favorite.id }})" title="Remover dos favoritos">
-                🗑️
-              </button>
+    <!-- COLLECTIONS -->
+    <div class="collections-section">
+      <div class="section-label">Coleções</div>
+      <div class="collections-row">
+        <div class="collection-card active" data-col="all">
+          <div class="collection-icon">★</div>
+          <div class="collection-info">
+            <div class="collection-name">Todos</div>
+            <div class="collection-count">8 artigos</div>
+          </div>
+        </div>
+        <div class="collection-card" data-col="leitura">
+          <div class="collection-icon">📖</div>
+          <div class="collection-info">
+            <div class="collection-name">Para Ler</div>
+            <div class="collection-count">3 artigos</div>
+          </div>
+        </div>
+        <div class="collection-card" data-col="trabalho">
+          <div class="collection-icon">💼</div>
+          <div class="collection-info">
+            <div class="collection-name">Trabalho</div>
+            <div class="collection-count">2 artigos</div>
+          </div>
+        </div>
+        <div class="collection-card" data-col="angola">
+          <div class="collection-icon">🌍</div>
+          <div class="collection-info">
+            <div class="collection-name">Angola</div>
+            <div class="collection-count">2 artigos</div>
+          </div>
+        </div>
+        <div class="collection-card" data-col="ia">
+          <div class="collection-icon">✦</div>
+          <div class="collection-info">
+            <div class="collection-name">Inteligência Artificial</div>
+            <div class="collection-count">1 artigo</div>
+          </div>
+        </div>
+        <button class="collection-add">+ Nova Coleção</button>
+      </div>
+    </div>
+
+    <!-- SORT BAR -->
+    <div class="sort-bar">
+      <div class="results-info"><strong id="resultCount">8</strong> artigos encontrados</div>
+      <select class="sort-select" id="sortSelect">
+        <option value="recent">Mais recentes</option>
+        <option value="oldest">Mais antigos</option>
+        <option value="az">A → Z</option>
+      </select>
+    </div>
+
+    <!-- CARDS GRID -->
+    <div class="news-grid" id="newsGrid">
+
+      <article class="news-card" data-category="Tecnologia" data-title="O Futuro da Inteligência Artificial em Angola" data-date="2026-04-28">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">TechCrunch</span>
+            <span class="source-date">28 Abr 2026</span>
+          </div>
+          <h3 class="card-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h3>
+          <p class="card-excerpt">Como a IA está a transformar setores críticos da economia angolana, do agronegócio à saúde.</p>
+          <div class="card-footer">
+            <span class="category-tag">Tecnologia</span>
+            <div class="card-actions">
+              <button class="btn-icon" title="Partilhar">↗</button>
+              <button class="btn-icon" title="Copiar link">🔗</button>
+              <button class="btn-icon star" title="Remover favorito">★</button>
             </div>
           </div>
-
-          <h3 class="favorite-title">
-            <a href="{{ favorite.external_url or ('/article/' + favorite.news_id|string) }}" 
-               target="_blank" 
-               style="color: inherit; text-decoration: none;">
-              {{ favorite.title }}
-            </a>
-          </h3>
-
-          {% if favorite.description %}
-          <p class="favorite-description">{{ favorite.description }}</p>
-          {% endif %}
-
-          <div class="favorite-meta">
-            <span class="favorite-source">{{ favorite.source or 'Fonte não especificada' }}</span>
-            <span class="favorite-date">{{ favorite.added_at_formatted or favorite.added_at }}</span>
-          </div>
-
-          {% if favorite.notes %}
-          <div class="favorite-notes">
-            <strong>📝 Notas:</strong> {{ favorite.notes }}
-          </div>
-          {% endif %}
-
-          {% if favorite.tags %}
-          <div class="favorite-tags">
-            {% for tag in favorite.tags %}
-            <span class="tag"># {{ tag }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
         </div>
-        {% endfor %}
-      {% else %}
-        <div class="empty-state">
-          <h3>🌟 Ainda não tens favoritos</h3>
-          <p>Começa a guardar artigos interessantes para os encontrares facilmente mais tarde.</p>
-          <a href="{{ url_for('dashboard') }}" class="btn-primary">Explorar Notícias</a>
+      </article>
+
+      <article class="news-card" data-category="Ciência" data-title="Cientistas Descobrem Nova Forma de Armazenamento Quântico" data-date="2026-04-26">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
         </div>
-      {% endif %}
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Nature</span>
+            <span class="source-date">26 Abr 2026</span>
+          </div>
+          <h3 class="card-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico de Dados</h3>
+          <p class="card-excerpt">A investigação poderá multiplicar por 1000x a capacidade de memórias quânticas a temperatura ambiente.</p>
+          <div class="card-footer">
+            <span class="category-tag">Ciência</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Negócios" data-title="Startup angolana levanta 12M$ em rodada série A" data-date="2026-04-25">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">TechAfrica</span>
+            <span class="source-date">25 Abr 2026</span>
+          </div>
+          <h3 class="card-title">Startup Angolana Levanta 12M$ em Rodada Série A</h3>
+          <p class="card-excerpt">A empresa de fintech com sede em Luanda torna-se num dos maiores rounds de investimento de sempre em Angola.</p>
+          <div class="card-footer">
+            <span class="category-tag">Negócios</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Tecnologia" data-title="GPT-5 Redefiniu o Que Significa Conversar com uma Máquina" data-date="2026-04-27">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Wired</span>
+            <span class="source-date">27 Abr 2026</span>
+          </div>
+          <h3 class="card-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</h3>
+          <p class="card-excerpt">O novo modelo da OpenAI superou benchmarks históricos em raciocínio e linguagem natural.</p>
+          <div class="card-footer">
+            <span class="category-tag">Tecnologia</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Ciência" data-title="Nova vacina contra malária aprovada pela OMS" data-date="2026-04-22">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Reuters</span>
+            <span class="source-date">22 Abr 2026</span>
+          </div>
+          <h3 class="card-title">Nova Vacina contra Malária Aprovada pela OMS com Eficácia de 89%</h3>
+          <p class="card-excerpt">A aprovação representa um marco histórico na luta contra uma das doenças mais mortais em África subsaariana.</p>
+          <div class="card-footer">
+            <span class="category-tag">Ciência</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Tecnologia" data-title="Angola aprova lei de proteção de dados pessoais" data-date="2026-04-20">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Jornal de Angola</span>
+            <span class="source-date">20 Abr 2026</span>
+          </div>
+          <h3 class="card-title">Angola Aprova Lei de Proteção de Dados Pessoais à Semelhança do RGPD</h3>
+          <p class="card-excerpt">A nova legislação entra em vigor em Julho e obriga todas as empresas a nomear um responsável pelo tratamento de dados.</p>
+          <div class="card-footer">
+            <span class="category-tag">Tecnologia</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Negócios" data-title="Mercados Globais Reagem à Nova Política Monetária do BCE" data-date="2026-04-28">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Bloomberg</span>
+            <span class="source-date">28 Abr 2026</span>
+          </div>
+          <h3 class="card-title">Mercados Globais Reagem à Nova Política Monetária do BCE</h3>
+          <p class="card-excerpt">Bolsas europeias abriram em alta após anúncio de corte de 0.5% nas taxas de juro diretoras.</p>
+          <div class="card-footer">
+            <span class="category-tag">Negócios</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="news-card" data-category="Tecnologia" data-title="SpaceX lança satélite de comunicações para África" data-date="2026-04-18">
+        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=700&q=80');">
+          <div class="card-badge saved">★ Guardado</div>
+          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
+        </div>
+        <div class="card-content">
+          <div class="source-row">
+            <div class="source-dot"></div>
+            <span class="source-tag">Space.com</span>
+            <span class="source-date">18 Abr 2026</span>
+          </div>
+          <h3 class="card-title">SpaceX Lança Satélite de Comunicações Dedicado ao Continente Africano</h3>
+          <p class="card-excerpt">O satélite Starlink-Africa vai cobrir zonas rurais em mais de 30 países, prometendo internet de alta velocidade.</p>
+          <div class="card-footer">
+            <span class="category-tag">Tecnologia</span>
+            <div class="card-actions">
+              <button class="btn-icon">↗</button>
+              <button class="btn-icon">🔗</button>
+              <button class="btn-icon star">★</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
     </div>
 
-    <!-- PAGINAÇÃO -->
-    {% if favorites and favorites.data.pagination and favorites.data.pagination.total > favorites.data.pagination.limit %}
-    <div class="pagination">
-      {% if favorites.data.pagination.offset > 0 %}
-        <a href="?page={{ (favorites.data.pagination.offset // favorites.data.pagination.limit) }}&category={{ current_category or 'all' }}&sort={{ sort_by }}" 
-           class="pagination-btn">« Anterior</a>
-      {% else %}
-        <span class="pagination-btn disabled">« Anterior</span>
-      {% endif %}
-
-      <span class="pagination-info">
-        {{ favorites.data.pagination.offset + 1 }} - {{ favorites.data.pagination.offset + favorites.data.favorites|length }} 
-        de {{ favorites.data.pagination.total }}
-      </span>
-
-      {% if favorites.data.pagination.has_more %}
-        <a href="?page={{ (favorites.data.pagination.offset // favorites.data.pagination.limit) + 2 }}&category={{ current_category or 'all' }}&sort={{ sort_by }}" 
-           class="pagination-btn">Próxima »</a>
-      {% else %}
-        <span class="pagination-btn disabled">Próxima »</span>
-      {% endif %}
+    <!-- EMPTY STATE (hidden by default) -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">★</div>
+      <h3>Nenhum favorito encontrado</h3>
+      <p>Tente outro filtro ou explore as notícias do dia para guardar artigos.</p>
+      <button class="btn-primary" onclick="resetFilters()">Ver todos os favoritos</button>
     </div>
-    {% endif %}
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div class="logo-text">NEURAL<span>NEWS</span></div>
+    </div>
+    <span>© 2026 NeuralNews · Dados via NewsAPI · Desenvolvido com IA em Angola</span>
+  </footer>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-dot" id="toastDot"></div>
+    <span id="toastMsg">Artigo removido dos favoritos</span>
   </div>
 
-  <!-- SCRIPTS -->
-  <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-  <script>
-    // Funções para gerenciar favoritos
-    async function removeFavorite(favoriteId) {
-      if (!confirm('Tens a certeza que queres remover este artigo dos favoritos?')) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/favorites/${favoriteId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // Remover o cartão da interface
-          const card = document.querySelector(`[data-id="${favoriteId}"]`);
-          if (card) {
-            card.style.transition = 'opacity 0.3s ease';
-            card.style.opacity = '0';
-            setTimeout(() => card.remove(), 300);
-          }
-          
-          // Atualizar estatísticas
-          updateStats();
-          showNotification('Artigo removido dos favoritos', 'success');
-        } else {
-          showNotification('Erro ao remover favorito: ' + result.message, 'error');
-        }
-      } catch (error) {
-        console.error('Erro ao remover favorito:', error);
-        showNotification('Erro ao remover favorito', 'error');
-      }
-    }
-
-    async function toggleRead(favoriteId, isCurrentlyRead) {
-      try {
-        const response = await fetch(`/api/favorites/${favoriteId}/read`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ is_read: !isCurrentlyRead })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // Atualizar indicador visual
-          const card = document.querySelector(`[data-id="${favoriteId}"]`);
-          const indicator = card.querySelector('.read-indicator');
-          const button = card.querySelector('.action-btn');
-          
-          if (!isCurrentlyRead) {
-            indicator.classList.remove('unread');
-            button.innerHTML = '✓';
-            button.title = 'Marcar como não lido';
-          } else {
-            indicator.classList.add('unread');
-            button.innerHTML = '📖';
-            button.title = 'Marcar como lido';
-          }
-
-          // Atualizar onclick
-          button.setAttribute('onclick', `toggleRead(${favoriteId}, ${!isCurrentlyRead})`);
-          
-          updateStats();
-          showNotification(result.message, 'success');
-        } else {
-          showNotification('Erro ao atualizar status: ' + result.message, 'error');
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar status de leitura:', error);
-        showNotification('Erro ao atualizar status de leitura', 'error');
-      }
-    }
-
-    function editNotes(favoriteId, currentNotes) {
-      const newNotes = prompt('Editar notas para este artigo:', currentNotes || '');
-      
-      if (newNotes !== null && newNotes !== currentNotes) {
-        updateNotes(favoriteId, newNotes);
-      }
-    }
-
-    async function updateNotes(favoriteId, notes) {
-      try {
-        const response = await fetch(`/api/favorites/${favoriteId}/notes`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ notes: notes })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // Atualizar notas na interface
-          const card = document.querySelector(`[data-id="${favoriteId}"]`);
-          let notesDiv = card.querySelector('.favorite-notes');
-          
-          if (notes.trim()) {
-            if (!notesDiv) {
-              notesDiv = document.createElement('div');
-              notesDiv.className = 'favorite-notes';
-              card.querySelector('.favorite-meta').insertAdjacentElement('afterend', notesDiv);
-            }
-            notesDiv.innerHTML = `<strong>📝 Notas:</strong> ${notes}`;
-          } else if (notesDiv) {
-            notesDiv.remove();
-          }
-
-          // Atualizar onclick do botão
-          const editBtn = card.querySelector('.action-btn[title*="notas"]');
-          editBtn.setAttribute('onclick', `editNotes(${favoriteId}, '${notes.replace(/'/g, "\\'")}\')`);
-          
-          showNotification('Notas atualizadas', 'success');
-        } else {
-          showNotification('Erro ao atualizar notas: ' + result.message, 'error');
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar notas:', error);
-        showNotification('Erro ao atualizar notas', 'error');
-      }
-    }
-
-    function filterFavorites() {
-      const category = document.getElementById('categoryFilter').value;
-      const sortBy = document.getElementById('sortBy').value;
-      const searchTerm = document.getElementById('searchBox').value;
-      
-      const params = new URLSearchParams();
-      if (category !== 'all') params.set('category', category);
-      if (sortBy !== 'added_at') params.set('sort', sortBy);
-      if (searchTerm) params.set('search', searchTerm);
-      
-      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      window.location.href = newUrl;
-    }
-
-    function handleSearch(event) {
-      if (event.key === 'Enter') {
-        filterFavorites();
-      }
-    }
-
-    async function updateStats() {
-      try {
-        const response = await fetch('/api/favorites/stats');
-        const result = await response.json();
-        
-        if (result.success) {
-          // Atualizar estatísticas na interface
-          const stats = result.data;
-          document.querySelector('.stat-item:nth-child(1) .stat-number').textContent = stats.total_favorites || 0;
-          document.querySelector('.stat-item:nth-child(2) .stat-number').textContent = stats.unread_favorites || 0;
-          document.querySelector('.stat-item:nth-child(3) .stat-number').textContent = Math.round(stats.read_percentage || 0) + '%';
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar estatísticas:', error);
-      }
-    }
-
-    function showNotification(message, type = 'info') {
-      // Criar elemento de notificação
-      const notification = document.createElement('div');
-      notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${type === 'success' ? '#10ac84' : type === 'error' ? '#ff4757' : '#3742fa'};
-        color: white;
-        border-radius: 8px;
-        font-weight: 500;
-        z-index: 10000;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-        max-width: 300px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      `;
-      notification.textContent = message;
-      
-      document.body.appendChild(notification);
-      
-      // Animar entrada
-      setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(0)';
-      }, 10);
-      
-      // Remover após 3 segundos
-      setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => notification.remove(), 300);
-      }, 3000);
-    }
-
-    // Inicialização
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('Página de favoritos carregada');
-      
-      // Adicionar listener para busca em tempo real
-      let searchTimeout;
-      const searchBox = document.getElementById('searchBox');
-      
-      searchBox.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-          // Só pesquisar se tiver mais de 2 caracteres ou estiver vazio
-          if (this.value.length === 0 || this.value.length > 2) {
-            filterFavorites();
-          }
-        }, 500); // Aguardar 500ms após parar de digitar
-      });
-    });
-  </script>
+  <script src="{{ url_for('static', filename='js/favort.js') }}"  ></script>
 </body>
-
 </html>
