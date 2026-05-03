@@ -1,3 +1,13 @@
 Requisitos para rodar o mysql 
 pip install mysql-connector-python
 Rodar pelo SQL lite
+
+Inserção  pra categorias 
+INSERT INTO categories (name) 
+VALUES 
+('Tecnologia'),
+('Desporto'),
+('Política'),
+('Economia'),
+('Cultura'),
+('Ciência');
