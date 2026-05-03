@@ -55,7 +55,9 @@
         <div class="page-eyebrow">Biblioteca</div>
         <h1 class="page-title">
           Os meus Favoritos
-          <span class="count-badge" id="countBadge">8</span>
+          <span class="count-badge" id="countBadge">
+            {{ favorites.data.pagination.total if favorites and favorites.success else '0' }}
+          </span>
         </h1>
         <p class="page-subtitle">Artigos guardados para ler, rever e organizar a qualquer momento.</p>
       </div>
@@ -65,9 +67,9 @@
           <input type="text" id="searchInput" placeholder="Pesquisar favoritos…" />
         </div>
         <button class="filter-chip active" data-filter="all">Todos</button>
-        <button class="filter-chip" data-filter="Tecnologia">Tecnologia</button>
-        <button class="filter-chip" data-filter="Ciência">Ciência</button>
-        <button class="filter-chip" data-filter="Negócios">Negócios</button>
+        {% for cat in available_categories %}
+        <button class="filter-chip" data-filter="{{ cat }}">{{ cat | capitalize }}</button>
+        {% endfor %}
         <div class="toolbar-right">
           <button class="view-btn active" id="gridViewBtn" title="Grelha">⊞</button>
           <button class="view-btn" id="listViewBtn" title="Lista">☰</button>
@@ -81,29 +83,37 @@
       <div class="stat-card">
         <div class="stat-icon blue">★</div>
         <div>
-          <div class="stat-value" id="totalSaved">8</div>
+          <div class="stat-value" id="totalSaved">
+            {{ favorites_stats.total_favorites if favorites_stats else '0' }}
+          </div>
           <div class="stat-desc">Artigos guardados</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">📂</div>
+        <div class="stat-icon green">📖</div>
         <div>
-          <div class="stat-value">4</div>
-          <div class="stat-desc">Coleções criadas</div>
+          <div class="stat-value">
+            {{ favorites_stats.read_favorites if favorites_stats else '0' }}
+          </div>
+          <div class="stat-desc">Artigos lidos</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon yellow">⚡</div>
         <div>
-          <div class="stat-value">3</div>
+          <div class="stat-value">
+            {{ favorites_stats.categories|length if favorites_stats and favorites_stats.categories else '0' }}
+          </div>
           <div class="stat-desc">Categorias diferentes</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon red">📅</div>
         <div>
-          <div class="stat-value">Hoje</div>
-          <div class="stat-desc">Último artigo guardado</div>
+          <div class="stat-value">
+            {{ favorites_stats.recent_favorites if favorites_stats else '0' }}
+          </div>
+          <div class="stat-desc">Guardados esta semana</div>
         </div>
       </div>
     </div>
@@ -116,44 +126,17 @@
           <div class="collection-icon">★</div>
           <div class="collection-info">
             <div class="collection-name">Todos</div>
-            <div class="collection-count">8 artigos</div>
+            <div class="collection-count" id="collectionCount">{{ favorites.data.favorites|length if favorites and favorites.success else '0' }} artigos</div>
           </div>
         </div>
-        <div class="collection-card" data-col="leitura">
-          <div class="collection-icon">📖</div>
-          <div class="collection-info">
-            <div class="collection-name">Para Ler</div>
-            <div class="collection-count">3 artigos</div>
-          </div>
-        </div>
-        <div class="collection-card" data-col="trabalho">
-          <div class="collection-icon">💼</div>
-          <div class="collection-info">
-            <div class="collection-name">Trabalho</div>
-            <div class="collection-count">2 artigos</div>
-          </div>
-        </div>
-        <div class="collection-card" data-col="angola">
-          <div class="collection-icon">🌍</div>
-          <div class="collection-info">
-            <div class="collection-name">Angola</div>
-            <div class="collection-count">2 artigos</div>
-          </div>
-        </div>
-        <div class="collection-card" data-col="ia">
-          <div class="collection-icon">✦</div>
-          <div class="collection-info">
-            <div class="collection-name">Inteligência Artificial</div>
-            <div class="collection-count">1 artigo</div>
-          </div>
-        </div>
-        <button class="collection-add">+ Nova Coleção</button>
       </div>
     </div>
 
     <!-- SORT BAR -->
     <div class="sort-bar">
-      <div class="results-info"><strong id="resultCount">8</strong> artigos encontrados</div>
+      <div class="results-info"><strong id="resultCount">
+        {{ favorites.data.favorites|length if favorites and favorites.success else '0' }}
+      </strong> artigos encontrados</div>
       <select class="sort-select" id="sortSelect">
         <option value="recent">Mais recentes</option>
         <option value="oldest">Mais antigos</option>
@@ -164,197 +147,47 @@
     <!-- CARDS GRID -->
     <div class="news-grid" id="newsGrid">
 
-      <article class="news-card" data-category="Tecnologia" data-title="O Futuro da Inteligência Artificial em Angola" data-date="2026-04-28">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">TechCrunch</span>
-            <span class="source-date">28 Abr 2026</span>
+      {% if favorites and favorites.success and favorites.data.favorites %}
+        {% for fav in favorites.data.favorites %}
+        <article class="news-card"
+          data-id="{{ fav.id }}"
+          data-category="{{ fav.category }}"
+          data-title="{{ fav.title }}"
+          data-date="{{ fav.added_at[:10] if fav.added_at else '' }}">
+          <div class="card-img" style="background-image:url('{{ fav.image_url if fav.image_url else "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=700&q=80" }}');">
+            <div class="card-badge saved">★ Guardado</div>
+            <button class="remove-overlay" title="Remover dos favoritos">✕</button>
           </div>
-          <h3 class="card-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h3>
-          <p class="card-excerpt">Como a IA está a transformar setores críticos da economia angolana, do agronegócio à saúde.</p>
-          <div class="card-footer">
-            <span class="category-tag">Tecnologia</span>
-            <div class="card-actions">
-              <button class="btn-icon" title="Partilhar">↗</button>
-              <button class="btn-icon" title="Copiar link">🔗</button>
-              <button class="btn-icon star" title="Remover favorito">★</button>
+          <div class="card-content">
+            <div class="source-row">
+              <div class="source-dot"></div>
+              <span class="source-tag">{{ fav.source if fav.source else 'Fonte Desconhecida' }}</span>
+              <span class="source-date">{{ fav.added_at_formatted if fav.added_at_formatted else '' }}</span>
+            </div>
+            <h3 class="card-title">{{ fav.title }}</h3>
+            <p class="card-excerpt">{{ fav.description if fav.description else '' }}</p>
+            <div class="card-footer">
+              <span class="category-tag">{{ fav.category }}</span>
+              <div class="card-actions">
+                {% if fav.external_url %}
+                <a href="{{ fav.external_url }}" target="_blank" class="btn-icon" title="Abrir artigo">↗</a>
+                {% elif fav.news_id %}
+                <a href="/artigo/{{ fav.news_id }}" class="btn-icon" title="Ver artigo">↗</a>
+                {% else %}
+                <button class="btn-icon">↗</button>
+                {% endif %}
+                <button class="btn-icon {% if fav.is_read %}active{% endif %}" 
+                        title="{% if fav.is_read %}Marcar como não lido{% else %}Marcar como lido{% endif %}"
+                        onclick="toggleRead(this, {{ fav.id }})">
+                  {% if fav.is_read %}✓{% else %}○{% endif %}
+                </button>
+                <button class="btn-icon star active" title="Remover favorito">★</button>
+              </div>
             </div>
           </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Ciência" data-title="Cientistas Descobrem Nova Forma de Armazenamento Quântico" data-date="2026-04-26">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Nature</span>
-            <span class="source-date">26 Abr 2026</span>
-          </div>
-          <h3 class="card-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico de Dados</h3>
-          <p class="card-excerpt">A investigação poderá multiplicar por 1000x a capacidade de memórias quânticas a temperatura ambiente.</p>
-          <div class="card-footer">
-            <span class="category-tag">Ciência</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Negócios" data-title="Startup angolana levanta 12M$ em rodada série A" data-date="2026-04-25">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">TechAfrica</span>
-            <span class="source-date">25 Abr 2026</span>
-          </div>
-          <h3 class="card-title">Startup Angolana Levanta 12M$ em Rodada Série A</h3>
-          <p class="card-excerpt">A empresa de fintech com sede em Luanda torna-se num dos maiores rounds de investimento de sempre em Angola.</p>
-          <div class="card-footer">
-            <span class="category-tag">Negócios</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Tecnologia" data-title="GPT-5 Redefiniu o Que Significa Conversar com uma Máquina" data-date="2026-04-27">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Wired</span>
-            <span class="source-date">27 Abr 2026</span>
-          </div>
-          <h3 class="card-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</h3>
-          <p class="card-excerpt">O novo modelo da OpenAI superou benchmarks históricos em raciocínio e linguagem natural.</p>
-          <div class="card-footer">
-            <span class="category-tag">Tecnologia</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Ciência" data-title="Nova vacina contra malária aprovada pela OMS" data-date="2026-04-22">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Reuters</span>
-            <span class="source-date">22 Abr 2026</span>
-          </div>
-          <h3 class="card-title">Nova Vacina contra Malária Aprovada pela OMS com Eficácia de 89%</h3>
-          <p class="card-excerpt">A aprovação representa um marco histórico na luta contra uma das doenças mais mortais em África subsaariana.</p>
-          <div class="card-footer">
-            <span class="category-tag">Ciência</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Tecnologia" data-title="Angola aprova lei de proteção de dados pessoais" data-date="2026-04-20">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Jornal de Angola</span>
-            <span class="source-date">20 Abr 2026</span>
-          </div>
-          <h3 class="card-title">Angola Aprova Lei de Proteção de Dados Pessoais à Semelhança do RGPD</h3>
-          <p class="card-excerpt">A nova legislação entra em vigor em Julho e obriga todas as empresas a nomear um responsável pelo tratamento de dados.</p>
-          <div class="card-footer">
-            <span class="category-tag">Tecnologia</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Negócios" data-title="Mercados Globais Reagem à Nova Política Monetária do BCE" data-date="2026-04-28">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Bloomberg</span>
-            <span class="source-date">28 Abr 2026</span>
-          </div>
-          <h3 class="card-title">Mercados Globais Reagem à Nova Política Monetária do BCE</h3>
-          <p class="card-excerpt">Bolsas europeias abriram em alta após anúncio de corte de 0.5% nas taxas de juro diretoras.</p>
-          <div class="card-footer">
-            <span class="category-tag">Negócios</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="news-card" data-category="Tecnologia" data-title="SpaceX lança satélite de comunicações para África" data-date="2026-04-18">
-        <div class="card-img" style="background-image:url('https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=700&q=80');">
-          <div class="card-badge saved">★ Guardado</div>
-          <button class="remove-overlay" title="Remover dos favoritos">✕</button>
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Space.com</span>
-            <span class="source-date">18 Abr 2026</span>
-          </div>
-          <h3 class="card-title">SpaceX Lança Satélite de Comunicações Dedicado ao Continente Africano</h3>
-          <p class="card-excerpt">O satélite Starlink-Africa vai cobrir zonas rurais em mais de 30 países, prometendo internet de alta velocidade.</p>
-          <div class="card-footer">
-            <span class="category-tag">Tecnologia</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">🔗</button>
-              <button class="btn-icon star">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
+        </article>
+        {% endfor %}
+      {% endif %}
 
     </div>
 

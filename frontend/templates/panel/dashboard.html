@@ -9,7 +9,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
     rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
@@ -40,8 +40,8 @@
       <div class="logo-text">NEURAL<span>NEWS</span></div>
     </div>
     <nav>
-      <button  onclick="window.location.href='/favoritos'" class="btn-nav" > Favoritos</button>
-      <button  onclick="window.location.href='/preferencias'" class="btn-nav">⚙Preferências</button>
+      <button onclick="window.location.href='/favoritos'" class="btn-nav"> Favoritos</button>
+      <button onclick="window.location.href='/preferencias'" class="btn-nav">⚙Preferências</button>
       <div class="user-chip">
         <div class="user-avatar">{{ user.full_name[0] if user and user.full_name else 'U' }}</div>
         <span class="user-name">{{ user.full_name if user and user.full_name else 'Utilizador' }}</span>
@@ -50,18 +50,37 @@
     </nav>
   </header>
 
-  <!-- CATEGORIES -->
   <div class="categories-bar">
-    <button class="cat-chip active">Geral</button>
-    <button class="cat-chip">Tecnologia</button>
-    <button class="cat-chip">Ciência</button>
-    <button class="cat-chip">Saúde</button>
-    <button class="cat-chip">Negócios</button>
-    <button class="cat-chip">Desporto</button>
-    <button class="cat-chip">Política</button>
-    <button class="cat-chip">Cultura</button>
-    <button class="cat-chip">Ambiente</button>
+    <form method="POST" id="form-categoria">
+      <input type="hidden" name="c" id="categoria-code">
+    </form>
+
+    <button type="button" class="cat-chip {% if categoria=='general' %}active{% endif %}"
+      onclick="setCategoria('1')">Geral</button>
+    <button type="button" class="cat-chip {% if categoria=='technology' %}active{% endif %}"
+      onclick="setCategoria('2')">Tecnologia</button>
+    <button type="button" class="cat-chip {% if categoria=='science' %}active{% endif %}"
+      onclick="setCategoria('3')">Ciência</button>
+    <button type="button" class="cat-chip {% if categoria=='health' %}active{% endif %}"
+      onclick="setCategoria('4')">Saúde</button>
+    <button type="button" class="cat-chip {% if categoria=='business' %}active{% endif %}"
+      onclick="setCategoria('5')">Negócios</button>
+    <button type="button" class="cat-chip {% if categoria=='sports' %}active{% endif %}"
+      onclick="setCategoria('6')">Desporto</button>
+    <button type="button" class="cat-chip {% if categoria=='politics' %}active{% endif %}"
+      onclick="setCategoria('7')">Política</button>
+    <button type="button" class="cat-chip {% if categoria=='culture' %}active{% endif %}"
+      onclick="setCategoria('8')">Cultura</button>
+    <button type="button" class="cat-chip {% if categoria=='environment' %}active{% endif %}"
+      onclick="setCategoria('9')">Ambiente</button>
   </div>
+
+  <script>
+    function setCategoria(code) {
+      document.getElementById('categoria-code').value = code;
+      document.getElementById('form-categoria').submit();
+    }
+  </script>
 
   <!-- MAIN -->
   <main class="container">
@@ -73,7 +92,7 @@
         <h2>Sugestão Inteligente para Si</h2>
         <p>Com base nos seus interesses em Tecnologia — este artigo é tendência agora em Angola.</p>
       </div>
-      <button class="ia-btn">Ver Artigo →</button>
+      <a href="#" class="ia-btn">Ver Artigo →</a>
     </div>
 
     <!-- DESTAQUES -->
@@ -83,145 +102,72 @@
     </div>
 
     <div class="news-grid">
-
-      <!-- Card Destaque Principal -->
+      {% for noticia in noticias %}
       <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1677756119517-756a188d2d94?w=800&q=80');">
+        <div class="card-img" style="background-image: url('{{ noticia.image if noticia.image else "
+          /static/img/default.jpg" }}');">
+          {% if loop.first %}
           <div class="card-badge">Em Destaque</div>
+          {% endif %}
         </div>
         <div class="card-content">
           <div class="source-row">
             <div class="source-dot"></div>
-            <span class="source-tag">TechCrunch</span>
+            <span class="source-tag">{{ noticia.author if noticia.author else "Fonte Desconhecida" }}</span>
           </div>
-          <h3 class="card-title">O Futuro da Inteligência Artificial em Angola e no Continente Africano</h3>
-          <p class="card-excerpt">Uma análise profunda sobre o crescimento tecnológico no IPIL e além — como a IA está a
-            transformar setores críticos da economia angolana.</p>
+          <h3 class="card-title">
+            <a href="/artigo/{{ noticia.id }}">{{ noticia.title }}</a>
+          </h3>
+          <p class="card-excerpt">{{ noticia.description }}</p>
           <div class="card-footer">
-            <span class="date">28 Abr 2026</span>
+            <span class="date">{{ noticia.date if noticia.date else "Hoje" }}</span>
             <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon active">★</button>
+              <a href="/artigo/{{ noticia.id }}" class="btn-icon">↗</a>
+              <button class="btn-icon btn-favorite"
+                title="Guardar nos favoritos"
+                onclick="addToFavorites(this, {
+                  newsId: '{{ noticia.id }}',
+                  title: `{{ noticia.title | replace('`','') }}`,
+                  description: `{{ noticia.description | replace('`','') if noticia.description else '' }}`,
+                  source: `{{ noticia.author | replace('`','') if noticia.author else '' }}`,
+                  imageUrl: `{{ noticia.image | replace('`','') if noticia.image else '' }}`,
+                  url: `{{ noticia.url | replace('`','') if noticia.url else '' }}`,
+                  category: '{{ categoria if categoria else "general" }}'
+                })">★</button>
             </div>
           </div>
         </div>
       </article>
-
-      <!-- Card 2 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Wired</span>
-          </div>
-          <h3 class="card-title">GPT-5 Redefiniu o Que Significa Conversar com uma Máquina</h3>
-          <p class="card-excerpt">O novo modelo da OpenAI superou benchmarks históricos em raciocínio e linguagem
-            natural.</p>
-          <div class="card-footer">
-            <span class="date">27 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 3 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1532094349884-543559241fad?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Nature</span>
-          </div>
-          <h3 class="card-title">Cientistas Descobrem Nova Forma de Armazenamento Quântico de Dados</h3>
-          <p class="card-excerpt">A investigação poderá multiplicar por 1000x a capacidade de memórias quânticas a
-            temperatura ambiente.</p>
-          <div class="card-footer">
-            <span class="date">26 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 4 -->
-      <article class="news-card">
-        <div class="card-img"
-          style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80');">
-        </div>
-        <div class="card-content">
-          <div class="source-row">
-            <div class="source-dot"></div>
-            <span class="source-tag">Bloomberg</span>
-          </div>
-          <h3 class="card-title">Mercados Globais Reagem à Nova Política Monetária do BCE</h3>
-          <p class="card-excerpt">Bolsas europeias abriram em alta após anúncio de corte de 0.5% nas taxas de juro
-            diretoras.</p>
-          <div class="card-footer">
-            <span class="date">28 Abr 2026</span>
-            <div class="card-actions">
-              <button class="btn-icon">↗</button>
-              <button class="btn-icon">★</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
+      {% endfor %}
     </div>
 
-    <!-- TRENDING -->
+
     <div class="trending-strip">
-      <div class="section-header" style="margin-bottom:0">
+      <div class="section-header" style="margin-bottom:0px;">
         <div class="section-title">Mais Lidas Agora</div>
         <a class="see-all" href="#">Ver ranking →</a>
       </div>
       <div class="trending-list">
+        {% for noticia in trending %}
         <div class="trending-item">
-          <div class="trending-num">01</div>
+          <div class="trending-num">{{ "%02d"|format(loop.index) }}</div>
           <div>
-            <div class="trending-text">Angola aprova lei de proteção de dados pessoais</div>
-            <div class="trending-src">Jornal de Angola · 3h atrás</div>
+            <div class="trending-text">{{ noticia.title }}</div>
+            <div class="trending-src">{{ noticia.author if noticia.author else "Fonte Desconhecida" }} · {{ noticia.date
+              if noticia.date else "Agora" }}</div>
           </div>
         </div>
-        <div class="trending-item">
-          <div class="trending-num">02</div>
-          <div>
-            <div class="trending-text">Startup angolana levanta 12M$ em rodada série A</div>
-            <div class="trending-src">TechAfrica · 5h atrás</div>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-num">03</div>
-          <div>
-            <div class="trending-text">Nova vacina contra malária aprovada pela OMS</div>
-            <div class="trending-src">Reuters · 6h atrás</div>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-num">04</div>
-          <div>
-            <div class="trending-text">SpaceX lança satélite de comunicações para África</div>
-            <div class="trending-src">Space.com · 8h atrás</div>
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
+
 
   </main>
 
   <!-- FOOTER -->
   <footer>
     <div class="logo">
+      <a href="/painel-controle"></a>
       <div class="logo-dot"></div>
       <div class="logo-text">NEURAL<span>NEWS</span></div>
     </div>
@@ -237,12 +183,56 @@
       });
     });
 
-    // Favorite toggle
-    document.querySelectorAll('.btn-icon').forEach(btn => {
-      if (btn.textContent.trim() === '★') {
-        btn.addEventListener('click', () => btn.classList.toggle('active'));
+    // Toast
+    function showDashToast(msg, type = 'success') {
+      let toast = document.getElementById('dash-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'dash-toast';
+        toast.style.cssText = 'position:fixed;top:80px;right:24px;padding:12px 20px;border-radius:12px;font-family:"DM Sans",sans-serif;font-size:0.82rem;font-weight:500;color:#fff;z-index:500;box-shadow:0 4px 20px rgba(0,0,0,.15);transition:all .3s ease;transform:translateX(300px);opacity:0;';
+        document.body.appendChild(toast);
       }
-    });
+      toast.textContent = msg;
+      toast.style.background = type === 'success' ? '#00d68f' : '#ff3b57';
+      setTimeout(() => { toast.style.transform = 'translateX(0)'; toast.style.opacity = '1'; }, 10);
+      setTimeout(() => { toast.style.transform = 'translateX(300px)'; toast.style.opacity = '0'; }, 3000);
+    }
+
+    // Adicionar artigo aos favoritos
+    async function addToFavorites(btn, article) {
+      if (btn.classList.contains('active')) return;
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: article.title,
+            description: article.description,
+            url: article.url,
+            source: article.source,
+            image_url: article.imageUrl,
+            category: article.category,
+            tags: []
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          btn.classList.add('active');
+          btn.title = 'Guardado nos favoritos';
+          showDashToast('★ Artigo guardado nos favoritos!');
+        } else {
+          showDashToast(result.message || 'Erro ao guardar favorito', 'error');
+          btn.disabled = false;
+        }
+      } catch (err) {
+        showDashToast('Erro ao conectar com o servidor', 'error');
+        btn.disabled = false;
+      }
+    }
   </script>
 
 </body>
