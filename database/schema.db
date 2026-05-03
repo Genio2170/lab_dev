@@ -19,17 +19,19 @@ CREATE TABLE IF NOT EXISTS users (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela news
-CREATE TABLE IF NOT EXISTS news (
+CREATE TABLE favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    news_id TEXT,
     title TEXT NOT NULL,
     description TEXT,
-    url TEXT NOT NULL UNIQUE,
     source TEXT,
+    category TEXT,
     image_url TEXT,
-    published_at DATETIME,
-    category_id INTEGER,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    external_url TEXT,
+    is_read BOOLEAN DEFAULT 0,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- Tabela preferences
