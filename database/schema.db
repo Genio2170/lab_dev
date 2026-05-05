@@ -2,7 +2,7 @@
 PRAGMA foreign_keys = ON;
 
 -- (SQLite cria automaticamente o banco quando você conecta ao arquivo)
--- Ex: sqlite3.connect("user_bd.db")
+-- Ex: sqlite3.connect("schema.db")
 
 -- Tabela categories
 CREATE TABLE IF NOT EXISTS categories (
